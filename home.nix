@@ -158,7 +158,7 @@ let
       | .showBatteryPercent = true
       | .showBatteryPercentOnlyOnBattery = false
       | ((.barConfigs[] | select(.id == "default")) |= (
-          .innerPadding = 8
+          .innerPadding = 11
           | .fontScale = 1.2
           | .iconScale = 1.2
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))

@@ -159,8 +159,8 @@ let
       | .showBatteryPercentOnlyOnBattery = false
       | ((.barConfigs[] | select(.id == "default")) |= (
           .innerPadding = 8
-          | .fontScale = 1.1
-          | .iconScale = 1.1
+          | .fontScale = 1.2
+          | .iconScale = 1.2
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))
     ' "$settings" > "$tmp"

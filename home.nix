@@ -289,6 +289,10 @@ in
     enable = true;
     colorScheme = "dark";
     gtk2.enable = false;
+    gtk3.bookmarks = [
+      "file://${config.home.homeDirectory}/Personal Personal"
+      "file://${config.home.homeDirectory}/Professional Professional"
+    ];
     font = {
       inherit (desktopFont) name size;
       package = pkgs.inter;

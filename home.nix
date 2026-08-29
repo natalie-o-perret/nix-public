@@ -50,6 +50,24 @@ let
     helium = 1.5;
   };
 
+  scaledVlc = pkgs.symlinkJoin {
+    name = "vlc-scaled";
+    paths = [ pkgs.vlc ];
+    nativeBuildInputs = [ pkgs.makeWrapper ];
+    postBuild = ''
+      rm "$out/bin/vlc"
+      makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
+        --set QT_SCALE_FACTOR ${toString desktopScale}
+
+      desktop="$out/share/applications/vlc.desktop"
+      rm "$desktop"
+      cp ${pkgs.vlc}/share/applications/vlc.desktop "$desktop"
+      substituteInPlace "$desktop" \
+        --replace-fail "Exec=${pkgs.vlc}/bin/vlc" "Exec=$out/bin/vlc"
+    '';
+    meta = pkgs.vlc.meta // { outputsToInstall = [ "out" ]; };
+  };
+
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
@@ -192,7 +210,7 @@ in
       enableWidevine = true;
       commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
     })
-    vlc
+    scaledVlc
     wl-clipboard
     xwayland-satellite
     yazi

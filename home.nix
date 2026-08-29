@@ -46,7 +46,7 @@ let
       rm "$out/bin/vlc"
       makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
         --set QT_SCALE_FACTOR 1.6 \
-        --set QT_FONT_DPI 60
+        --set QT_FONT_DPI 56
 
       desktop="$out/share/applications/vlc.desktop"
       rm "$desktop"

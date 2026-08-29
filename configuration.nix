@@ -26,7 +26,6 @@
       compositor.name = "niri";
       configHome = "/home/nperret";
     };
-    firefox.enable = true;
     niri = {
       enable = true;
       useNautilus = false;

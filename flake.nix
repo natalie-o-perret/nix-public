@@ -45,9 +45,30 @@
           ];
         }
       ];
+      browserPolicies = {
+        DefaultSearchProviderContextMenuAccessAllowed = true;
+        DefaultSearchProviderEnabled = true;
+        DefaultSearchProviderImageURL = "https://lens.google.com/upload";
+        DefaultSearchProviderImageURLPostParams = "encoded_image={google:imageThumbnail}";
+        DefaultSearchProviderKeyword = "google.com";
+        DefaultSearchProviderName = "Google";
+        DefaultSearchProviderSearchURL = "https://www.google.com/search?q={searchTerms}";
+        DefaultSearchProviderSuggestURL = "https://www.google.com/complete/search?client=chrome&q={searchTerms}";
+        ExtensionInstallForcelist = [
+          "bhghoamapcdpbohphigoooaddinpkbai;https://clients2.google.com/service/update2/crx"
+          "occjjkgifpmdgodlplnacmkejpdionan;https://clients2.google.com/service/update2/crx"
+        ];
+        HomepageIsNewTabPage = false;
+        HomepageLocation = "about:blank";
+        NewTabPageLocation = "about:blank";
+        RestoreOnStartup = 4;
+        RestoreOnStartupURLs = [ "about:blank" ];
+      };
     in
     {
-      lib.personalBookmarks = personalBookmarks;
+      lib = {
+        inherit browserPolicies personalBookmarks;
+      };
 
       nixosModules.default = {
         imports = [
@@ -58,9 +79,13 @@
 
         environment.etc."vivaldi/policies/managed/bookmarks.json".text =
           builtins.toJSON { ManagedBookmarks = personalBookmarks; };
+        environment.etc."vivaldi/policies/managed/browser.json".text = builtins.toJSON browserPolicies;
 
         home-manager = {
-          extraSpecialArgs.managedBookmarks = personalBookmarks;
+          extraSpecialArgs = {
+            inherit browserPolicies;
+            managedBookmarks = personalBookmarks;
+          };
           sharedModules = [
             dms.homeModules.dank-material-shell
             zen-browser.homeModules.beta

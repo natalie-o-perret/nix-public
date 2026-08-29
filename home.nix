@@ -1,4 +1,5 @@
 {
+  browserPolicies,
   config,
   lib,
   managedBookmarks,
@@ -38,9 +39,37 @@ let
       '';
     });
 
+  desktopScale = 1.25;
   desktopFont = {
     name = "Inter Variable";
-    size = 10;
+    size = builtins.ceil (10 * desktopScale);
+  };
+
+  browserScale = {
+    vivaldi = 1.0;
+    helium = 1.5;
+  };
+
+  compactDms = pkgs.dms-shell.overrideAttrs (old: {
+    postFixup = (old.postFixup or "") + ''
+      qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
+      chmod u+w "$qml"
+      substituteInPlace "$qml" \
+        --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
+        --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
+        --replace-fail 'readonly property int popoutWidth: 550' 'readonly property int popoutWidth: 440' \
+        --replace-fail 'readonly property int popoutHeight: 500' 'readonly property int popoutHeight: 400' \
+        --replace-fail 'readonly property int itemHeight: 72' 'readonly property int itemHeight: 64' \
+        --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88' \
+        --replace-fail 'readonly property int keyboardHintsHeight: 80' 'readonly property int keyboardHintsHeight: 64'
+    '';
+  });
+
+  emojiLauncher = pkgs.fetchFromGitHub {
+    owner = "devnullvoid";
+    repo = "dms-emoji-launcher";
+    rev = "8ff394e3ddfcb2fd755ed2e7b4c6f01f3e26e596";
+    hash = "sha256-fmIddCvACwO8wbAtLBMtDnEXXQJjb7+o2s4jW3f8VIU=";
   };
 
   qtAppearance = {
@@ -65,27 +94,33 @@ let
       | .iconThemePerMode = false
       | .lastAppliedIconTheme = "Papirus-Dark"
       | .fontFamily = "${desktopFont.name}"
+      | .fontScale = 1.0
       | .cursorSettings.theme = "Bibata-Modern-Ice"
       | .cursorSettings.size = 24
+      | .gtkThemingEnabled = true
       | .qtThemingEnabled = true
+      | .runDmsMatugenTemplates = true
+      | .matugenTemplateGtk = true
+      | .matugenTemplateNiri = true
+      | .matugenTemplateQt5ct = true
+      | .matugenTemplateQt6ct = true
+      | .matugenTemplateFirefox = false
+      | .matugenTemplateZenBrowser = true
+      | .matugenTemplateZed = true
+      | .syncModeWithPortal = true
       | .showBatteryPercent = true
       | .showBatteryPercentOnlyOnBattery = false
       | ((.barConfigs[] | select(.id == "default")) |= (
           .innerPadding = 8
           | .fontScale = 1.1
           | .iconScale = 1.1
-          | .rightWidgets |= (
-              if any(.[]; ((if type == "string" then . else .id end) == "exampleEmojiPlugin"))
-              then .
-              else . + [{"id": "exampleEmojiPlugin", "enabled": true}]
-              end
-            )
+          | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))
     ' "$settings" > "$tmp"
     ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
   '';
 
-  managedBookmarksPolicy = builtins.toJSON { ManagedBookmarks = managedBookmarks; };
+  heliumPolicies = builtins.toJSON (browserPolicies // { ManagedBookmarks = managedBookmarks; });
 
   # ponytail: Helium is not in nixpkgs; bump this pinned release when updating.
   helium =
@@ -100,10 +135,13 @@ let
     in
     pkgs.appimageTools.wrapType2 {
       inherit pname version src;
+      nativeBuildInputs = [ pkgs.makeWrapper ];
       extraPkgs = _: [
-        (pkgs.writeTextDir "etc/chromium/policies/managed/bookmarks.json" managedBookmarksPolicy)
+        (pkgs.writeTextDir "etc/chromium/policies/managed/browser.json" heliumPolicies)
       ];
       extraInstallCommands = ''
+        wrapProgram "$out/bin/helium" \
+          --add-flags "--force-device-scale-factor=${toString browserScale.helium}"
         install -Dm444 ${contents}/helium.desktop $out/share/applications/helium.desktop
         cp -r ${contents}/usr/share/icons $out/share
       '';
@@ -142,6 +180,7 @@ in
     pear-desktop
     pdfarranger
     python3
+    qbittorrent
     rustc
     rustfmt
     signal-desktop
@@ -151,6 +190,7 @@ in
     (vivaldi.override {
       proprietaryCodecs = true;
       enableWidevine = true;
+      commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
     })
     vlc
     wl-clipboard
@@ -240,13 +280,46 @@ in
   programs.zen-browser = {
     enable = true;
     policies = lib.mkForce {
+      ExtensionSettings."authenticator@mymindstorm" = {
+        install_url = "https://addons.mozilla.org/firefox/downloads/latest/auth-helper/latest.xpi";
+        installation_mode = "force_installed";
+      };
+      Homepage = {
+        URL = "about:blank";
+        Locked = true;
+        StartPage = "homepage-locked";
+      };
       ManagedBookmarks = managedBookmarks;
+      NewTabPage = false;
+      SearchEngines.Default = "Google";
+      VisualSearchEnabled = true;
+      Preferences = {
+        "general.autoScroll" = {
+          Value = true;
+          Status = "locked";
+        };
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = {
+          Value = true;
+          Status = "locked";
+        };
+      };
     };
   };
 
   programs.zed-editor = {
     enable = true;
     defaultEditor = true;
+    userSettings = {
+      ui_font_family = desktopFont.name;
+      ui_font_size = builtins.ceil (16 * desktopScale);
+      buffer_font_family = "Fira Code";
+      buffer_font_size = builtins.ceil (15 * desktopScale);
+      theme = {
+        mode = "system";
+        light = "DankShell Light";
+        dark = "DankShell Dark";
+      };
+    };
   };
 
   xdg.mimeApps = {
@@ -264,12 +337,12 @@ in
 
   programs.dank-material-shell = {
     enable = true;
-    package = pkgs.dms-shell;
+    package = compactDms;
     dgop.package = pkgs.dgop;
     managePluginSettings = true;
-    plugins.exampleEmojiPlugin = {
+    plugins.emojiLauncher = {
       enable = true;
-      src = "${pkgs.dms-shell}/share/quickshell/dms/PLUGINS/ExampleEmojiPlugin";
+      src = emojiLauncher;
     };
     quickshell.package = pkgs.quickshell;
     systemd = {
@@ -288,12 +361,35 @@ in
 
   programs.opencode.enable = true;
 
+  dconf.settings."io/github/tobagin/karere".theme = "system";
+
+  home.activation.signalSystemTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    settings="$HOME/.config/Signal/ephemeral.json"
+    [[ -f "$settings" ]] || exit 0
+    tmp="$(${pkgs.coreutils}/bin/mktemp)"
+    trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
+    ${pkgs.jq}/bin/jq '."theme-setting" = "system"' "$settings" > "$tmp"
+    ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
+  '';
+
   xdg.configFile = {
+    "gtk-3.0/gtk.css" = {
+      force = true;
+      text = ''@import url("dank-colors.css");'';
+    };
     "gtk-3.0/settings.ini".force = true;
+    "gtk-4.0/gtk.css" = {
+      force = true;
+      text = ''@import url("dank-colors.css");'';
+    };
     "gtk-4.0/settings.ini".force = true;
     "niri/config.kdl".source = niriConfig;
     "qt5ct/qt5ct.conf".force = true;
     "qt6ct/qt6ct.conf".force = true;
+    "zen/smo9aotg.Default Profile/chrome/userChrome.css" = {
+      force = true;
+      text = ''@import url("file://${config.xdg.configHome}/DankMaterialShell/zen.css");'';
+    };
 
     "opencode/opencode.jsonc" = {
       force = true;

@@ -46,8 +46,8 @@ let
   };
 
   browserScale = {
-    vivaldi = 1.15;
-    helium = 1.35;
+    vivaldi = 1.2;
+    helium = 1.3;
   };
 
   scaledVlc = pkgs.symlinkJoin {
@@ -57,7 +57,8 @@ let
     postBuild = ''
       rm "$out/bin/vlc"
       makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
-        --set QT_SCALE_FACTOR 1.5
+        --set QT_SCALE_FACTOR 1.6 \
+        --set QT_FONT_DPI 60
 
       desktop="$out/share/applications/vlc.desktop"
       rm "$desktop"
@@ -67,6 +68,34 @@ let
     '';
     meta = pkgs.vlc.meta // { outputsToInstall = [ "out" ]; };
   };
+
+  dmsVivaldi =
+    (pkgs.vivaldi.override {
+      proprietaryCodecs = true;
+      enableWidevine = true;
+      commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
+    }).overrideAttrs (old: {
+      postFixup = (old.postFixup or "") + ''
+        prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
+        ${pkgs.jq}/bin/jq '
+          .vivaldi.theme.schedule.enabled.default = "off"
+          | .vivaldi.themes.current.default = "Vivaldi2"
+          | .vivaldi.themes.current_private.default = "Vivaldi2"
+          | (.vivaldi.themes.system.default[] | select(.id == "Vivaldi2")) |= (
+              .name = "DMS Pink"
+              | .accentFromPage = false
+              | .backgroundImage = ""
+              | .blur = 0
+              | .colorAccentBg = "#e91e63"
+              | .colorBg = "#191112"
+              | .colorFg = "#f0dee0"
+              | .colorHighlightBg = "#e91e63"
+              | .colorWindowBg = "#261d1e"
+            )
+        ' "$prefs" > "$prefs.tmp"
+        mv "$prefs.tmp" "$prefs"
+      '';
+    });
 
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
@@ -205,11 +234,7 @@ in
     spotify
     swappy
     telegram-desktop
-    (vivaldi.override {
-      proprietaryCodecs = true;
-      enableWidevine = true;
-      commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
-    })
+    dmsVivaldi
     scaledVlc
     wl-clipboard
     xwayland-satellite

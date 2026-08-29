@@ -35,8 +35,10 @@ let
 
   browserScale = {
     vivaldi = 1.2;
-    helium = 1.3;
+    helium = 1.16;
   };
+
+  qt5MenuStyle = pkgs.writeText "qt5-menu.qss" "QMenuBar, QMenu { font-size: 14px; }\n";
 
   scaledVlc = pkgs.symlinkJoin {
     name = "vlc-scaled";
@@ -45,8 +47,7 @@ let
     postBuild = ''
       rm "$out/bin/vlc"
       makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
-        --set QT_SCALE_FACTOR 1.6 \
-        --set QT_FONT_DPI 48
+        --set QT_SCALE_FACTOR 1.6
 
       desktop="$out/share/applications/vlc.desktop"
       rm "$desktop"
@@ -54,7 +55,9 @@ let
       substituteInPlace "$desktop" \
         --replace-fail "Exec=${pkgs.vlc}/bin/vlc" "Exec=$out/bin/vlc"
     '';
-    meta = pkgs.vlc.meta // { outputsToInstall = [ "out" ]; };
+    meta = pkgs.vlc.meta // {
+      outputsToInstall = [ "out" ];
+    };
   };
 
   dmsVivaldi =
@@ -62,28 +65,36 @@ let
       proprietaryCodecs = true;
       enableWidevine = true;
       commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
-    }).overrideAttrs (old: {
-      postFixup = (old.postFixup or "") + ''
-        prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
-        ${pkgs.jq}/bin/jq '
-          .vivaldi.theme.schedule.enabled.default = "off"
-          | .vivaldi.themes.current.default = "Vivaldi2"
-          | .vivaldi.themes.current_private.default = "Vivaldi2"
-          | (.vivaldi.themes.system.default[] | select(.id == "Vivaldi2")) |= (
-              .name = "DMS Pink"
-              | .accentFromPage = false
-              | .backgroundImage = ""
-              | .blur = 0
-              | .colorAccentBg = "#e91e63"
-              | .colorBg = "#191112"
-              | .colorFg = "#f0dee0"
-              | .colorHighlightBg = "#e91e63"
-              | .colorWindowBg = "#261d1e"
-            )
-        ' "$prefs" > "$prefs.tmp"
-        mv "$prefs.tmp" "$prefs"
-      '';
-    });
+    }).overrideAttrs
+      (old: {
+        postFixup = (old.postFixup or "") + ''
+          prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
+          css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
+          ${pkgs.jq}/bin/jq '
+            .vivaldi.theme.schedule.enabled.default = "off"
+            | .vivaldi.themes.current.default = "Vivaldi2"
+            | .vivaldi.themes.current_private.default = "Vivaldi2"
+            | (.vivaldi.themes.system.default[] | select(.id == "Vivaldi2")) |= (
+                .name = "DMS Pink"
+                | .accentFromPage = false
+                | .backgroundImage = ""
+                | .blur = 0
+                | .colorAccentBg = "#e91e63"
+                | .colorBg = "#191112"
+                | .colorFg = "#f0dee0"
+                | .colorHighlightBg = "#e91e63"
+                | .colorWindowBg = "#261d1e"
+              )
+          ' "$prefs" > "$prefs.tmp"
+          mv "$prefs.tmp" "$prefs"
+          chmod u+w "$css"
+          printf '%s\n' \
+            '#browser .menu, #browser .menubar { font-size: 11px; }' \
+            '#browser .tab .title { font-size: 13.5px; }' \
+            '#browser .UrlBar-UrlField { font-size: 14px; }' \
+            >> "$css"
+        '';
+      });
 
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
@@ -203,7 +214,7 @@ let
       ];
       extraInstallCommands = ''
         wrapProgram "$out/bin/helium" \
-          --add-flags "--force-device-scale-factor=${toString browserScale.helium}"
+          --add-flags "--force-device-scale-factor=${toString browserScale.helium} --top-chrome-touch-ui=disabled --gtk-version=3"
         install -Dm444 ${contents}/helium.desktop $out/share/applications/helium.desktop
         cp -r ${contents}/usr/share/icons $out/share
       '';
@@ -298,6 +309,7 @@ in
     qt5ctSettings = {
       Appearance = qtAppearance;
       Fonts = qtFonts;
+      Interface.stylesheets = "${qt5MenuStyle}";
     };
     qt6ctSettings = {
       Appearance = qtAppearance;

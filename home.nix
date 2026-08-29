@@ -27,18 +27,6 @@ let
     color = "pink";
   };
 
-  matchaPink =
-    (pkgs.matcha-gtk-theme.override {
-      colorVariants = [ "dark" ];
-      themeVariants = [ "aliz" ];
-    }).overrideAttrs (old: {
-      postPatch = (old.postPatch or "") + ''
-        substituteInPlace src/gtk/gtk-{3.0,4.0}/gtk-dark-aliz.css \
-          --replace-fail '#F0544C' '#E91F7A' \
-          --replace-fail '240, 84, 76' '233, 31, 122'
-      '';
-    });
-
   desktopScale = 1.25;
   desktopFont = {
     name = "Inter Variable";
@@ -112,6 +100,28 @@ let
     '';
   });
 
+  dmsSystemAppTheming = pkgs.writeShellApplication {
+    name = "dms-system-app-theming";
+    runtimeInputs = with pkgs; [
+      coreutils
+      gnugrep
+      gnused
+    ];
+    text = ''
+      shell_dir=${compactDms}/share/quickshell/dms
+      for _ in {1..100}; do
+        if [[ -f "$HOME/.config/gtk-3.0/dank-colors.css" && -f "$HOME/.local/share/color-schemes/DankMatugen.colors" ]]; then
+          "$shell_dir/scripts/gtk.sh" "$HOME/.config" false "$shell_dir"
+          "$shell_dir/scripts/qt.sh" "$HOME/.config"
+          exit 0
+        fi
+        sleep 0.1
+      done
+      echo "DMS theme files were not generated" >&2
+      exit 1
+    '';
+  };
+
   emojiLauncher = pkgs.fetchFromGitHub {
     owner = "devnullvoid";
     repo = "dms-emoji-launcher";
@@ -120,7 +130,6 @@ let
   };
 
   qtAppearance = {
-    custom_palette = true;
     icon_theme = "Papirus-Dark";
     standard_dialogs = "xdgdesktopportal";
     style = "Fusion";
@@ -222,7 +231,6 @@ in
     karere
     kdePackages.kate
     lsd
-    matchaPink
     papirusPink
     pear-desktop
     pdfarranger
@@ -264,8 +272,8 @@ in
       package = pkgs.inter;
     };
     theme = {
-      name = "Matcha-dark-aliz";
-      package = matchaPink;
+      name = "adw-gtk3-dark";
+      package = pkgs.adw-gtk3;
     };
     iconTheme = {
       name = "Papirus-Dark";
@@ -279,15 +287,11 @@ in
     enable = true;
     platformTheme.name = "qtct";
     qt5ctSettings = {
-      Appearance = qtAppearance // {
-        color_scheme_path = "${config.xdg.configHome}/qt5ct/colors/matugen.conf";
-      };
+      Appearance = qtAppearance;
       Fonts = qtFonts;
     };
     qt6ctSettings = {
-      Appearance = qtAppearance // {
-        color_scheme_path = "${config.xdg.configHome}/qt6ct/colors/matugen.conf";
-      };
+      Appearance = qtAppearance;
       Fonts = qtFonts;
     };
   };
@@ -400,6 +404,7 @@ in
       "XCURSOR_SIZE=24"
     ];
     ExecStartPre = [ dmsDesktopSettings ];
+    ExecStartPost = [ "${dmsSystemAppTheming}/bin/dms-system-app-theming" ];
   };
 
   programs.opencode.enable = true;
@@ -416,15 +421,7 @@ in
   '';
 
   xdg.configFile = {
-    "gtk-3.0/gtk.css" = {
-      force = true;
-      text = ''@import url("dank-colors.css");'';
-    };
     "gtk-3.0/settings.ini".force = true;
-    "gtk-4.0/gtk.css" = {
-      force = true;
-      text = ''@import url("dank-colors.css");'';
-    };
     "gtk-4.0/settings.ini".force = true;
     "niri/config.kdl".source = niriConfig;
     "qt5ct/qt5ct.conf".force = true;

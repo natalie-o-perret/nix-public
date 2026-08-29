@@ -46,8 +46,8 @@ let
   };
 
   browserScale = {
-    vivaldi = 1.0;
-    helium = 1.5;
+    vivaldi = 1.15;
+    helium = 1.35;
   };
 
   scaledVlc = pkgs.symlinkJoin {
@@ -57,7 +57,7 @@ let
     postBuild = ''
       rm "$out/bin/vlc"
       makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
-        --set QT_SCALE_FACTOR ${toString desktopScale}
+        --set QT_SCALE_FACTOR 1.5
 
       desktop="$out/share/applications/vlc.desktop"
       rm "$desktop"

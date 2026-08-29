@@ -27,29 +27,6 @@ let
     color = "pink";
   };
 
-  qt6ctKde = pkgs.qt6Packages.qt6ct.overrideAttrs (old: {
-    pname = "qt6ct-kde";
-    patches = (old.patches or [ ]) ++ [
-      (pkgs.fetchpatch {
-        url = "https://aur.archlinux.org/cgit/aur.git/plain/qt6ct-shenanigans.patch?h=qt6ct-kde&id=8c1003e13b7e7545e717273e0716f095f195bd13";
-        hash = "sha256-Q8QOMDy84z6FD0OkSLylEwB+/Zs50jcUgR+4J6Lmwmk=";
-      })
-    ];
-    buildInputs =
-      (old.buildInputs or [ ])
-      ++ (with pkgs.kdePackages; [
-        kconfig
-        kcolorscheme
-        kiconthemes
-      ]);
-    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.kdePackages.extra-cmake-modules ];
-    cmakeFlags = (old.cmakeFlags or [ ]) ++ [
-      "-DKF6Config_DIR=${pkgs.kdePackages.kconfig}/lib/cmake/KF6Config"
-      "-DKF6ColorScheme_DIR=${pkgs.kdePackages.kcolorscheme}/lib/cmake/KF6ColorScheme"
-      "-DKF6IconThemes_DIR=${pkgs.kdePackages.kiconthemes}/lib/cmake/KF6IconThemes"
-    ];
-  });
-
   desktopScale = 1.25;
   desktopFont = {
     name = "Inter Variable";
@@ -111,7 +88,8 @@ let
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
-      chmod u+w "$qml"
+      qt="$out/share/quickshell/dms/scripts/qt.sh"
+      chmod u+w "$qml" "$qt"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -120,6 +98,9 @@ let
         --replace-fail 'readonly property int itemHeight: 72' 'readonly property int itemHeight: 64' \
         --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88' \
         --replace-fail 'readonly property int keyboardHintsHeight: 80' 'readonly property int keyboardHintsHeight: 64'
+      # Use DMS's native qtct palette. The KDE palette requires qt5ct-kde, which nixpkgs no longer ships.
+      substituteInPlace "$qt" \
+        --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
     '';
   });
 
@@ -129,6 +110,8 @@ let
       coreutils
       gnugrep
       gnused
+      libsForQt5.qt5ct
+      qt6Packages.qt6ct
     ];
     text = ''
       shell_dir=${compactDms}/share/quickshell/dms
@@ -311,13 +294,7 @@ in
 
   qt = {
     enable = true;
-    platformTheme = {
-      name = "qtct";
-      package = [
-        pkgs.libsForQt5.qt5ct
-        qt6ctKde
-      ];
-    };
+    platformTheme.name = "qtct";
     qt5ctSettings = {
       Appearance = qtAppearance;
       Fonts = qtFonts;
@@ -443,6 +420,10 @@ in
   programs.opencode.enable = true;
 
   dconf.settings."io/github/tobagin/karere".theme = "system";
+
+  home.activation.dmsSystemAppTheming = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
+    run ${dmsSystemAppTheming}/bin/dms-system-app-theming
+  '';
 
   home.activation.signalSystemTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings="$HOME/.config/Signal/ephemeral.json"

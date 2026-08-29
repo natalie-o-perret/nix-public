@@ -27,6 +27,29 @@ let
     color = "pink";
   };
 
+  qt6ctKde = pkgs.qt6Packages.qt6ct.overrideAttrs (old: {
+    pname = "qt6ct-kde";
+    patches = (old.patches or [ ]) ++ [
+      (pkgs.fetchpatch {
+        url = "https://aur.archlinux.org/cgit/aur.git/plain/qt6ct-shenanigans.patch?h=qt6ct-kde&id=8c1003e13b7e7545e717273e0716f095f195bd13";
+        hash = "sha256-Q8QOMDy84z6FD0OkSLylEwB+/Zs50jcUgR+4J6Lmwmk=";
+      })
+    ];
+    buildInputs =
+      (old.buildInputs or [ ])
+      ++ (with pkgs.kdePackages; [
+        kconfig
+        kcolorscheme
+        kiconthemes
+      ]);
+    nativeBuildInputs = (old.nativeBuildInputs or [ ]) ++ [ pkgs.kdePackages.extra-cmake-modules ];
+    cmakeFlags = (old.cmakeFlags or [ ]) ++ [
+      "-DKF6Config_DIR=${pkgs.kdePackages.kconfig}/lib/cmake/KF6Config"
+      "-DKF6ColorScheme_DIR=${pkgs.kdePackages.kcolorscheme}/lib/cmake/KF6ColorScheme"
+      "-DKF6IconThemes_DIR=${pkgs.kdePackages.kiconthemes}/lib/cmake/KF6IconThemes"
+    ];
+  });
+
   desktopScale = 1.25;
   desktopFont = {
     name = "Inter Variable";
@@ -229,7 +252,6 @@ in
     inter
     jetbrains-toolbox
     karere
-    kdePackages.kate
     lsd
     papirusPink
     pear-desktop
@@ -285,7 +307,13 @@ in
 
   qt = {
     enable = true;
-    platformTheme.name = "qtct";
+    platformTheme = {
+      name = "qtct";
+      package = [
+        pkgs.libsForQt5.qt5ct
+        qt6ctKde
+      ];
+    };
     qt5ctSettings = {
       Appearance = qtAppearance;
       Fonts = qtFonts;
@@ -297,6 +325,7 @@ in
   };
 
   xfconf.settings.thunar = {
+    "last-location-bar" = "ThunarLocationButtons";
     "misc-single-click" = true;
     "misc-single-click-timeout" = 1;
   };

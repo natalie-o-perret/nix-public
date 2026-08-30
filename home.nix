@@ -242,6 +242,7 @@ in
     gh
     gimp
     go
+    guvcview
     helium
     inter
     jetbrains-toolbox
@@ -432,6 +433,13 @@ in
   programs.opencode.enable = true;
 
   dconf.settings."io/github/tobagin/karere".theme = "system";
+
+  # Audacity themes its editor separately from GTK.
+  home.activation.audacityDarkTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    settings="$HOME/.config/audacity/audacity.cfg"
+    run ${pkgs.coreutils}/bin/mkdir -p "$(dirname "$settings")"
+    run ${pkgs.crudini}/bin/crudini --set "$settings" GUI Theme dark
+  '';
 
   home.activation.dmsSystemAppTheming = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
     run ${dmsSystemAppTheming}/bin/dms-system-app-theming

@@ -46,6 +46,7 @@
         }
       ];
       browserPolicies = {
+        BookmarkBarEnabled = true;
         DefaultBrowserSettingEnabled = false;
         DefaultSearchProviderContextMenuAccessAllowed = true;
         DefaultSearchProviderEnabled = true;

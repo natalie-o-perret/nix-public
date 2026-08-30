@@ -105,7 +105,8 @@ let
           prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
           css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
           ${pkgs.jq}/bin/jq '
-            .vivaldi.homepage.default = "about:blank"
+            .vivaldi.bookmarks.bar.visible.default = true
+            | .vivaldi.homepage.default = "about:blank"
             | .vivaldi.startup.check_is_default.default = false
             | .vivaldi.tabs.new_page.link.default = "blankpage"
             | .vivaldi.theme.schedule.enabled.default = "off"

@@ -19,6 +19,7 @@
   i18n.defaultLocale = "en_US.UTF-8";
   environment.sessionVariables.TERMINAL = "ghostty";
 
+  services.desktopManager.cosmic.enable = true;
   services.displayManager.defaultSession = "niri";
 
   programs = {

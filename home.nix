@@ -103,7 +103,6 @@ let
       (old: {
         postFixup = (old.postFixup or "") + ''
           prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
-          bundle="$out/opt/vivaldi/resources/vivaldi/bundle.js"
           css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
           for bookmarks in "$out/opt/vivaldi/resources/vivaldi/default-bookmarks/"*.json; do
             ${pkgs.jq}/bin/jq '
@@ -136,10 +135,6 @@ let
               )
           ' "$prefs" > "$prefs.tmp"
           mv "$prefs.tmp" "$prefs"
-          substituteInPlace "$bundle" \
-            --replace-fail \
-              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks));if(!a)return void console.error("Root bookmark id missing");' \
-              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks)),r=o.children.find((e=>"managed"===e.folderType));if(!a)return void console.error("Root bookmark id missing");r&&r.children.forEach((e=>{e.parentId=a.id,e.index=a.children.length,a.children.push(e)}));'
           chmod u+w "$css"
           printf '%s\n' \
             '#browser .menu, #browser .menubar { font-size: 11px; }' \
@@ -530,6 +525,11 @@ in
     };
   };
 
+  services.kanshi = {
+    enable = true;
+    systemdTarget = "niri.service";
+  };
+
   systemd.user.services.dms.Service = {
     Environment = [
       "XCURSOR_THEME=Bibata-Modern-Ice"
@@ -566,6 +566,11 @@ in
   xdg.configFile = {
     "gtk-3.0/settings.ini".force = true;
     "gtk-4.0/settings.ini".force = true;
+    "kanshi/config".text = ''
+      profile {
+        ...output "*" scale ${toString desktopScale}
+      }
+    '';
     "niri/config.kdl".source = niriConfig;
     "qt5ct/qt5ct.conf".force = true;
     "qt6ct/qt6ct.conf".force = true;

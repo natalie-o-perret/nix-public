@@ -242,7 +242,7 @@ in
     gh
     gimp
     go
-    guvcview
+    cheese
     helium
     inter
     jetbrains-toolbox

@@ -223,7 +223,7 @@ let
       | .iconThemePerMode = false
       | .lastAppliedIconTheme = "Papirus-Dark"
       | .fontFamily = "${desktopFont.name}"
-      | .fontScale = 1.1
+      | .fontScale = ${toString desktopScale}
       | .controlCenterShowBluetoothIcon = true
       | .cursorSettings.theme = "Bibata-Modern-Ice"
       | .cursorSettings.size = 24
@@ -242,7 +242,7 @@ let
       | .showBatteryPercentOnlyOnBattery = false
       | ((.barConfigs[] | select(.id == "default")) |= (
           .innerPadding = 11
-          | .fontScale = 1.1
+          | .fontScale = ${toString desktopScale}
           | .iconScale = 1.1
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))

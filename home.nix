@@ -103,6 +103,7 @@ let
       (old: {
         postFixup = (old.postFixup or "") + ''
           prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
+          bundle="$out/opt/vivaldi/resources/vivaldi/bundle.js"
           css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
           for bookmarks in "$out/opt/vivaldi/resources/vivaldi/default-bookmarks/"*.json; do
             ${pkgs.jq}/bin/jq '
@@ -135,6 +136,10 @@ let
               )
           ' "$prefs" > "$prefs.tmp"
           mv "$prefs.tmp" "$prefs"
+          substituteInPlace "$bundle" \
+            --replace-fail \
+              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks));if(!a)return void console.error("Root bookmark id missing");' \
+              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks)),r=o.children.find((e=>"managed"===e.folderType));if(!a)return void console.error("Root bookmark id missing");r&&(r.parentId=a.id,r.index=a.children.length,a.children.push(r));'
           chmod u+w "$css"
           printf '%s\n' \
             '#browser .menu, #browser .menubar { font-size: 11px; }' \

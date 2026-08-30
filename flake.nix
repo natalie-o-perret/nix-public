@@ -79,7 +79,12 @@
         ];
 
         environment.etc."vivaldi/policies/managed/bookmarks.json".text = builtins.toJSON {
-          ManagedBookmarks = personalBookmarks;
+          ManagedBookmarks = [
+            {
+              name = "Managed bookmarks";
+              children = personalBookmarks;
+            }
+          ];
         };
         environment.etc."vivaldi/policies/managed/browser.json".text = builtins.toJSON browserPolicies;
 

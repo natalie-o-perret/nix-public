@@ -139,7 +139,7 @@ let
           substituteInPlace "$bundle" \
             --replace-fail \
               'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks));if(!a)return void console.error("Root bookmark id missing");' \
-              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks)),r=o.children.find((e=>"managed"===e.folderType));if(!a)return void console.error("Root bookmark id missing");r&&(r.parentId=a.id,r.index=a.children.length,a.children.push(r));'
+              'const o=e[0],a=o.children.find((e=>e.id===t.bookmarks)),r=o.children.find((e=>"managed"===e.folderType)),m=r?.children?.[0];if(!a)return void console.error("Root bookmark id missing");m&&(m.parentId=a.id,m.index=a.children.length,a.children.push(m));'
           chmod u+w "$css"
           printf '%s\n' \
             '#browser .menu, #browser .menubar { font-size: 11px; }' \

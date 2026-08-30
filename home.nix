@@ -105,7 +105,10 @@ let
           prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
           css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
           ${pkgs.jq}/bin/jq '
-            .vivaldi.theme.schedule.enabled.default = "off"
+            .vivaldi.homepage.default = "about:blank"
+            | .vivaldi.startup.check_is_default.default = false
+            | .vivaldi.tabs.new_page.link.default = "blankpage"
+            | .vivaldi.theme.schedule.enabled.default = "off"
             | .vivaldi.themes.current.default = "Vivaldi2"
             | .vivaldi.themes.current_private.default = "Vivaldi2"
             | (.vivaldi.themes.system.default[] | select(.id == "Vivaldi2")) |= (

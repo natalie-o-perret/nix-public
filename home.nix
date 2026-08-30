@@ -40,25 +40,46 @@ let
 
   qt5MenuStyle = pkgs.writeText "qt5-menu.qss" "QMenuBar, QMenu { font-size: 14px; }\n";
 
-  scaledVlc = pkgs.symlinkJoin {
-    name = "vlc-scaled";
-    paths = [ pkgs.vlc ];
-    nativeBuildInputs = [ pkgs.makeWrapper ];
-    postBuild = ''
-      rm "$out/bin/vlc"
-      makeWrapper ${pkgs.vlc}/bin/vlc "$out/bin/vlc" \
-        --set QT_SCALE_FACTOR 1.6
+  logseq =
+    # ponytail: Logseq 0.10.15 fails with Electron 43; retry the current Electron after upgrading Logseq.
+    (pkgs.logseq.override { electron_39 = pkgs.electron_41; }).overrideAttrs (old: {
+      postPatch = (old.postPatch or "") + ''
+        substituteInPlace src/main/frontend/state.cljs \
+          --replace-fail '(or (storage/get :ui/theme) "light")' '(or (storage/get :ui/theme) "dark")' \
+          --replace-fail '((fnil identity (or util/mac? util/win32? false)) (storage/get :ui/system-theme?))' '((fnil identity true) (storage/get :ui/system-theme?))' \
+          --replace-fail ':ui/radix-color                        (storage/get :ui/radix-color)' ':ui/radix-color                        (or (storage/get :ui/radix-color) :pink)'
+      '';
+    });
 
-      desktop="$out/share/applications/vlc.desktop"
-      rm "$desktop"
-      cp ${pkgs.vlc}/share/applications/vlc.desktop "$desktop"
-      substituteInPlace "$desktop" \
-        --replace-fail "Exec=${pkgs.vlc}/bin/vlc" "Exec=$out/bin/vlc"
-    '';
-    meta = pkgs.vlc.meta // {
-      outputsToInstall = [ "out" ];
+  scaledVlc =
+    let
+      vlc = pkgs.vlc.overrideAttrs (old: {
+        postPatch = (old.postPatch or "") + ''
+          substituteInPlace modules/gui/qt/styles/seekstyle.cpp \
+            --replace-fail 'QColor foregroundBase( 50, 156, 255 );' \
+              'QColor foregroundBase = slideroptions->palette.color(QPalette::Highlight);'
+        '';
+      });
+    in
+    pkgs.symlinkJoin {
+      name = "vlc-scaled";
+      paths = [ vlc ];
+      nativeBuildInputs = [ pkgs.makeWrapper ];
+      postBuild = ''
+        rm "$out/bin/vlc"
+        makeWrapper ${vlc}/bin/vlc "$out/bin/vlc" \
+          --set QT_SCALE_FACTOR 1.6
+
+        desktop="$out/share/applications/vlc.desktop"
+        rm "$desktop"
+        cp ${vlc}/share/applications/vlc.desktop "$desktop"
+        substituteInPlace "$desktop" \
+          --replace-fail "Exec=${vlc}/bin/vlc" "Exec=$out/bin/vlc"
+      '';
+      meta = vlc.meta // {
+        outputsToInstall = [ "out" ];
+      };
     };
-  };
 
   dmsVivaldi =
     (pkgs.vivaldi.override {
@@ -100,7 +121,8 @@ let
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
-      chmod u+w "$qml" "$qt"
+      tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
+      chmod u+w "$qml" "$qt" "$tray"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -112,6 +134,8 @@ let
       # Use DMS's native qtct palette. The KDE palette requires qt5ct-kde, which nixpkgs no longer ships.
       substituteInPlace "$qt" \
         --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
+      substituteInPlace "$tray" \
+        --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
     '';
   });
 
@@ -247,6 +271,7 @@ in
     inter
     jetbrains-toolbox
     karere
+    logseq
     lsd
     papirusPink
     pear-desktop

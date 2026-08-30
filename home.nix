@@ -253,6 +253,7 @@ in
     pdfarranger
     python3
     qbittorrent
+    ristretto
     rustc
     rustfmt
     signal-desktop
@@ -395,6 +396,15 @@ in
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
+      "image/bmp" = [ "org.xfce.ristretto.desktop" ];
+      "image/gif" = [ "org.xfce.ristretto.desktop" ];
+      "image/jpeg" = [ "org.xfce.ristretto.desktop" ];
+      "image/png" = [ "org.xfce.ristretto.desktop" ];
+      "image/svg+xml" = [ "org.xfce.ristretto.desktop" ];
+      "image/tiff" = [ "org.xfce.ristretto.desktop" ];
+      "image/webp" = [ "org.xfce.ristretto.desktop" ];
+      "image/x-pixmap" = [ "org.xfce.ristretto.desktop" ];
+      "image/x-xpixmap" = [ "org.xfce.ristretto.desktop" ];
       "inode/directory" = [ "thunar.desktop" ];
       "text/plain" = [ "dev.zed.Zed.desktop" ];
     };

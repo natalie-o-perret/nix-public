@@ -34,7 +34,6 @@
     }:
     let
       personalBookmarks = [
-        { toplevel_name = "Starter links"; }
         {
           name = "Personal";
           children = [
@@ -79,8 +78,9 @@
           dank-greeter.nixosModules.default
         ];
 
-        environment.etc."vivaldi/policies/managed/bookmarks.json".text =
-          builtins.toJSON { ManagedBookmarks = personalBookmarks; };
+        environment.etc."vivaldi/policies/managed/bookmarks.json".text = builtins.toJSON {
+          ManagedBookmarks = personalBookmarks;
+        };
         environment.etc."vivaldi/policies/managed/browser.json".text = builtins.toJSON browserPolicies;
 
         home-manager = {

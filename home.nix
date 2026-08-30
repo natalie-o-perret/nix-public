@@ -104,6 +104,16 @@ let
         postFixup = (old.postFixup or "") + ''
           prefs="$out/opt/vivaldi/resources/vivaldi/prefs_definitions.json"
           css="$out/opt/vivaldi/resources/vivaldi/style/common.css"
+          for bookmarks in "$out/opt/vivaldi/resources/vivaldi/default-bookmarks/"*.json; do
+            ${pkgs.jq}/bin/jq '
+              if has("version") and has("children") then
+                .version = "1000" | .children = []
+              else
+                .
+              end
+            ' "$bookmarks" > "$bookmarks.tmp"
+            mv "$bookmarks.tmp" "$bookmarks"
+          done
           ${pkgs.jq}/bin/jq '
             .vivaldi.bookmarks.bar.visible.default = true
             | .vivaldi.homepage.default = "about:blank"
@@ -394,6 +404,7 @@ in
   programs.zen-browser = {
     enable = true;
     policies = lib.mkForce {
+      DisplayBookmarksToolbar = "always";
       DontCheckDefaultBrowser = true;
       ExtensionSettings."authenticator@mymindstorm" = {
         install_url = "https://addons.mozilla.org/firefox/downloads/latest/auth-helper/latest.xpi";
@@ -406,6 +417,7 @@ in
       };
       ManagedBookmarks = managedBookmarks;
       NewTabPage = false;
+      NoDefaultBookmarks = true;
       SearchEngines.Default = "Google";
       VisualSearchEnabled = true;
       Preferences = {

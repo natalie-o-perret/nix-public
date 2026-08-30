@@ -223,7 +223,8 @@ let
       | .iconThemePerMode = false
       | .lastAppliedIconTheme = "Papirus-Dark"
       | .fontFamily = "${desktopFont.name}"
-      | .fontScale = 1.0
+      | .fontScale = 1.1
+      | .controlCenterShowBluetoothIcon = true
       | .cursorSettings.theme = "Bibata-Modern-Ice"
       | .cursorSettings.size = 24
       | .gtkThemingEnabled = true
@@ -241,15 +242,52 @@ let
       | .showBatteryPercentOnlyOnBattery = false
       | ((.barConfigs[] | select(.id == "default")) |= (
           .innerPadding = 11
-          | .fontScale = 1.2
-          | .iconScale = 1.2
+          | .fontScale = 1.1
+          | .iconScale = 1.1
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))
     ' "$settings" > "$tmp"
     ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
   '';
 
-  heliumPolicies = builtins.toJSON (browserPolicies // { ManagedBookmarks = managedBookmarks; });
+  # ponytail: Helium rewrites Web Store URLs. Bump these local CRXs manually.
+  authenticatorCrx = pkgs.fetchurl {
+    url = "https://clients2.googleusercontent.com/crx/blobs/Abe5cL458nEmTqOKNQyZ01AEqeK2rOU0Y4XGFmFDAUYexkMFVImzGXDOTGILdb_yUxaSdMsxbq2r0SFYicdcQD-98DAKcpS7uFYOyxsmDbW754CsTbuMNyOVPGfQ00RIAKB3AMZSmuWq5oi9v3bUiQySLMFoNrwVCDJHTg/BHGHOAMAPCDPBOHPHIGOOOADDINPKBAI_8_0_1_0.crx";
+    hash = "sha256-zyHVeLo7swr2xMostJXomhMpasoKPhRn2Vc1HXlAu7I=";
+  };
+
+  autoScrollCrx = pkgs.fetchurl {
+    url = "https://clients2.googleusercontent.com/crx/blobs/Abe5cL6HYia7ln_elS710xpcr7o2VN-rKhkRUQXDtKLXZkT0PKYmI7K0Vf85MmsM2TSyxSJyTjcpclYalN0K5kGfBqk-MeSCSgqzQKulge3hpWeeSubCAMZSmuVvDe8OSn6A2VDEb4YRzxjhKPf-Aw/OCCJJKGIFPMDGODLPLNACMKEJPDIONAN_4_10_0_0.crx";
+    hash = "sha256-JVJHIv+IZmimuvMbDwWHJ4DnHp+kOvFzo1IbAuhzldU=";
+  };
+
+  heliumExtensionUpdates = pkgs.writeText "helium-extension-updates.xml" ''
+    <?xml version="1.0" encoding="UTF-8"?>
+    <gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">
+      <app appid="bhghoamapcdpbohphigoooaddinpkbai">
+        <updatecheck codebase="file://${authenticatorCrx}" version="8.0.1" />
+      </app>
+      <app appid="occjjkgifpmdgodlplnacmkejpdionan">
+        <updatecheck codebase="file://${autoScrollCrx}" version="4.10" />
+      </app>
+    </gupdate>
+  '';
+
+  heliumPolicies = builtins.toJSON (
+    (builtins.removeAttrs browserPolicies [ "ExtensionInstallForcelist" ])
+    // {
+      ExtensionSettings."bhghoamapcdpbohphigoooaddinpkbai" = {
+        installation_mode = "force_installed";
+        toolbar_pin = "force_pinned";
+        update_url = "file://${heliumExtensionUpdates}";
+      };
+      ExtensionSettings."occjjkgifpmdgodlplnacmkejpdionan" = {
+        installation_mode = "force_installed";
+        update_url = "file://${heliumExtensionUpdates}";
+      };
+      ManagedBookmarks = managedBookmarks;
+    }
+  );
 
   # ponytail: Helium is not in nixpkgs; bump this pinned release when updating.
   helium =
@@ -430,10 +468,6 @@ in
           Value = true;
           Status = "locked";
         };
-        "zen.view.use-single-toolbar" = {
-          Value = false;
-          Status = "locked";
-        };
         "toolkit.legacyUserProfileCustomizations.stylesheets" = {
           Value = true;
           Status = "locked";
@@ -538,6 +572,10 @@ in
     "zen/smo9aotg.Default Profile/chrome/userChrome.css" = {
       force = true;
       text = ''@import url("file://${config.xdg.configHome}/DankMaterialShell/zen.css");'';
+    };
+    "zen/smo9aotg.Default Profile/user.js" = {
+      force = true;
+      text = ''user_pref("zen.view.use-single-toolbar", false);'';
     };
 
     "opencode/opencode.jsonc" = {

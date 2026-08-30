@@ -51,6 +51,19 @@ let
       '';
     });
 
+  # ponytail: secretui is not in nixpkgs; bump this pinned release when updating.
+  secretui = pkgs.rustPlatform.buildRustPackage rec {
+    pname = "secretui";
+    version = "0.1.4";
+    src = pkgs.fetchFromGitHub {
+      owner = "edwordout";
+      repo = "secretui";
+      rev = "v${version}";
+      hash = "sha256-xqgNT0SYZlFYcU8JAq3d8TpYSVjIK6LftBSC8vwSLyU=";
+    };
+    cargoHash = "sha256-NX02kZA++qzSnYHLmZnKZePOfBPLKeRYd2yu1fR9ZyM=";
+  };
+
   scaledVlc =
     let
       vlc = pkgs.vlc.overrideAttrs (old: {
@@ -281,6 +294,7 @@ in
     ristretto
     rustc
     rustfmt
+    secretui
     signal-desktop
     spotify
     swappy
@@ -376,6 +390,7 @@ in
   programs.zen-browser = {
     enable = true;
     policies = lib.mkForce {
+      DontCheckDefaultBrowser = true;
       ExtensionSettings."authenticator@mymindstorm" = {
         install_url = "https://addons.mozilla.org/firefox/downloads/latest/auth-helper/latest.xpi";
         installation_mode = "force_installed";

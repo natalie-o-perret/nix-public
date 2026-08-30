@@ -46,6 +46,7 @@
         }
       ];
       browserPolicies = {
+        DefaultBrowserSettingEnabled = false;
         DefaultSearchProviderContextMenuAccessAllowed = true;
         DefaultSearchProviderEnabled = true;
         DefaultSearchProviderImageURL = "https://lens.google.com/upload";

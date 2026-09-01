@@ -493,24 +493,24 @@ in
       add_newline = false;
       command_timeout = 200;
       scan_timeout = 10;
-      format = "[╭─](bold #e91e63) $username$hostname$directory$git_branch$git_status$nix_shell$golang$rust$zig$cmd_duration$status$jobs$fill$shell$time$line_break[╰─](bold #e91e63) $character";
+      format = "[╭─](bold #e91e63) $username$hostname$directory$git_branch$git_status$nix_shell$golang$rust$zig$cmd_duration$status$jobs$fill$time$line_break[╰─](bold #e91e63) $shell$character";
       username = {
         format = "[$user]($style)";
-        show_always = true;
+        show_always = false;
         style_root = "bold red";
         style_user = "bold #f0dee0";
       };
       hostname = {
         format = "[@$hostname]($style) ";
-        ssh_only = false;
+        ssh_only = true;
         style = "bold #e91e63";
       };
       directory = {
         format = "[$path]($style)";
         read_only = " ro";
         style = "bold #e91e63";
-        truncate_to_repo = false;
-        truncation_length = 3;
+        truncate_to_repo = true;
+        truncation_length = 2;
       };
       git_branch = {
         format = " [git:$branch]($style)";
@@ -565,7 +565,7 @@ in
       shell = {
         bash_indicator = "bash";
         disabled = false;
-        format = "[$indicator]($style)";
+        format = "[$indicator]($style) ";
         nu_indicator = "nu";
         style = "bold blue";
       };

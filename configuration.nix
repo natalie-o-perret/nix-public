@@ -39,6 +39,7 @@
   services.udisks2.enable = true;
   services.printing.enable = true;
   services.pulseaudio.enable = false;
+  security.polkit.enablePkexecWrapper = true;
   security.rtkit.enable = true;
   services.pipewire = {
     enable = true;

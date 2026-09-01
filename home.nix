@@ -720,6 +720,7 @@ in
   '';
 
   xdg.configFile = {
+    "carapace/specs/lsd.yaml".source = ./carapace-lsd.yaml;
     "gtk-3.0/settings.ini".force = true;
     "gtk-4.0/settings.ini".force = true;
     "kanshi/config".text = ''

@@ -1,0 +1,76 @@
+name: lsd
+description: An ls command with pretty colours and icons
+flags:
+  -a, --all: Show hidden files including . and ..
+  -A, --almost-all: Show hidden files except . and ..
+  --color=: When to use terminal colours
+  --icon=: When to print icons
+  --icon-theme=: Icon theme
+  -F, --classify: Append a file type indicator
+  -l, --long: Display extended metadata
+  --ignore-config: Ignore the configuration file
+  --config-file=: Use a specific configuration file
+  -1, --oneline: Display one entry per line
+  -R, --recursive: Recurse into directories
+  -h, --human-readable: Use human-readable sizes
+  --tree: Display directories as a tree
+  --depth=: Maximum recursion depth
+  -d, --directory-only: Display directories themselves
+  --permission=: Permission display format
+  --size=: Size display format
+  --total-size: Display total directory sizes
+  --date=: Date display format
+  -t, --timesort: Sort by modification time
+  -S, --sizesort: Sort by size
+  -X, --extensionsort: Sort by extension
+  -G, --gitsort: Sort by Git status
+  -v, --versionsort: Sort naturally by version
+  --sort=: Sort field
+  -U, --no-sort: Keep directory order
+  -r, --reverse: Reverse the sort order
+  --group-dirs=: Directory grouping
+  --group-directories-first: Group directories first
+  --blocks=: Metadata blocks to display
+  --classic: Use classic ls-like output
+  --no-symlink: Hide symbolic link targets
+  -I, --ignore-glob=*: Ignore matching paths
+  -i, --inode: Display inode numbers
+  -g, --git: Display Git status with long output
+  -L, --dereference: Dereference symbolic links
+  -Z, --context: Display security contexts
+  --hyperlink=: When to add terminal hyperlinks
+  --header: Display block headers
+  --truncate-owner-after=: Maximum owner name length
+  --truncate-owner-marker=: Owner truncation marker
+  -N, --literal: Do not quote file names
+  --help: Display help
+  -V, --version: Display version
+completion:
+  flag:
+    blocks:
+      - permission
+      - user
+      - group
+      - context
+      - size
+      - date
+      - name
+      - inode
+      - links
+      - git
+      - "$uniquelist(,)"
+    color: [always, auto, never]
+    config-file: ["$files([.yaml, .yml])"]
+    date: [date, locale, relative]
+    depth: ["$carapace.number.Range({start: 1, end: 10})"]
+    group-dirs: [none, first, last]
+    hyperlink: [always, auto, never]
+    icon: [always, auto, never]
+    icon-theme: [fancy, unicode]
+    ignore-glob: ["$files"]
+    permission: [rwx, octal, attributes, disable]
+    size: [default, short, bytes]
+    sort: [size, time, version, extension, git, none]
+    truncate-owner-after: ["$carapace.number.Range({start: 1, end: 40})"]
+    truncate-owner-marker: ["...", "-"]
+  positionalany: ["$files"]

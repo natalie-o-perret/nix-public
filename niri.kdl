@@ -73,6 +73,7 @@ binds {
     Mod+V hotkey-overlay-title="Clipboard manager" { spawn "dms" "ipc" "call" "clipboard" "toggle"; }
     Mod+M hotkey-overlay-title="Process manager" { spawn "dms" "ipc" "call" "processlist" "focusOrToggle"; }
     Mod+Comma hotkey-overlay-title="DMS settings" { spawn "dms" "ipc" "call" "settings" "focusOrToggle"; }
+    Mod+E hotkey-overlay-title="File browser" { spawn "dms" "ipc" "call" "dmsFiles" "toggle"; }
     Mod+N hotkey-overlay-title="Notification center" { spawn "dms" "ipc" "call" "notifications" "toggle"; }
     Mod+P hotkey-overlay-title="Notepad" { spawn "dms" "ipc" "call" "notepad" "toggle"; }
     Mod+X hotkey-overlay-title="Power menu" { spawn "dms" "ipc" "call" "powermenu" "toggle"; }

@@ -434,6 +434,7 @@ in
     colorScheme = "dark";
     gtk2.enable = false;
     gtk3.bookmarks = [
+      "file://${config.home.homeDirectory}/Downloads"
       "file://${config.home.homeDirectory}/Personal Personal"
       "file://${config.home.homeDirectory}/Professional Professional"
     ];
@@ -643,6 +644,18 @@ in
     };
   };
 
+  xdg.desktopEntries.dms-files = {
+    name = "DMS Files";
+    comment = "Browse files with DankMaterialShell";
+    categories = [
+      "FileManager"
+      "System"
+    ];
+    exec = "${lib.getExe compactDms} ipc call dmsFiles toggle";
+    icon = "folder";
+    terminal = false;
+  };
+
   xdg.mimeApps = {
     enable = true;
     defaultApplications = {
@@ -673,6 +686,10 @@ in
     plugins.emojiLauncher = {
       enable = true;
       src = emojiLauncher;
+    };
+    plugins.dmsFiles = {
+      enable = true;
+      src = ./dms-file-browser;
     };
     quickshell.package = pkgs.quickshell;
     systemd = {
@@ -721,6 +738,7 @@ in
 
   xdg.configFile = {
     "carapace/specs/lsd.yaml".source = ./carapace-lsd.yaml;
+    "gtk-3.0/bookmarks".force = true;
     "gtk-3.0/settings.ini".force = true;
     "gtk-4.0/settings.ini".force = true;
     "kanshi/config".text = ''

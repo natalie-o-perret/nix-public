@@ -185,8 +185,9 @@ let
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
       gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
+      shell="$out/share/quickshell/dms/DMSShell.qml"
       tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      chmod u+w "$qml" "$gtk" "$qt" "$tray"
+      chmod u+w "$qml" "$gtk" "$qt" "$shell" "$tray"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -198,6 +199,8 @@ let
       # Use DMS's native qtct palette. The KDE palette requires qt5ct-kde, which nixpkgs no longer ships.
       substituteInPlace "$qt" \
         --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
+      substituteInPlace "$shell" \
+        --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
       cat >> "$gtk" <<'EOF'

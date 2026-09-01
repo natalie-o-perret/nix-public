@@ -20,7 +20,7 @@ cursor {
 
 layout {
     gaps 8
-    center-focused-column "on-overflow"
+    center-focused-column "never"
     background-color "transparent"
 
     preset-column-widths {
@@ -29,7 +29,7 @@ layout {
         proportion 0.66667
     }
 
-    default-column-width { proportion 0.5; }
+    default-column-width { proportion 1.0; }
 
     focus-ring {
         width 2

@@ -34,8 +34,8 @@ let
   };
 
   browserScale = {
-    vivaldi = 1.2;
-    helium = 1.16;
+    vivaldi = 1.25;
+    helium = 1.2;
   };
 
   qt5MenuStyle = pkgs.writeText "qt5-menu.qss" "QMenuBar, QMenu { font-size: 14px; }\n";
@@ -62,6 +62,36 @@ let
       hash = "sha256-xqgNT0SYZlFYcU8JAq3d8TpYSVjIK6LftBSC8vwSLyU=";
     };
     cargoHash = "sha256-NX02kZA++qzSnYHLmZnKZePOfBPLKeRYd2yu1fR9ZyM=";
+  };
+
+  # ponytail: k0s is not in nixpkgs; bump this pinned release when updating.
+  k0s = pkgs.stdenvNoCC.mkDerivation rec {
+    pname = "k0s";
+    version = "1.36.4+k0s.0";
+    src = pkgs.fetchurl {
+      url = "https://github.com/k0sproject/k0s/releases/download/v${version}/k0s-v${version}-amd64";
+      hash = "sha256-yh6eaBBzNYRugpZ3f84szWVChOYmW0tdMsNOrYcq+Y8=";
+    };
+    dontUnpack = true;
+    installPhase = ''
+      install -Dm755 "$src" "$out/bin/k0s"
+    '';
+  };
+
+  kindPodman = pkgs.writeShellApplication {
+    name = "kind";
+    text = ''
+      export KIND_EXPERIMENTAL_PROVIDER=podman
+      exec ${pkgs.kind}/bin/kind "$@"
+    '';
+  };
+
+  oxkerPodman = pkgs.writeShellApplication {
+    name = "oxker";
+    text = ''
+      export DOCKER_HOST="unix://$XDG_RUNTIME_DIR/podman/podman.sock"
+      exec ${pkgs.oxker}/bin/oxker "$@"
+    '';
   };
 
   scaledVlc =
@@ -145,6 +175,7 @@ let
             '#browser .menu, #browser .menubar { font-size: 11px; }' \
             '#browser .tab .title { font-size: 13.5px; }' \
             '#browser .UrlBar-UrlField { font-size: 14px; }' \
+            '#browser .bookmark-bar { font-size: 15px; }' \
             >> "$css"
         '';
       });
@@ -152,9 +183,10 @@ let
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
+      gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
       tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      chmod u+w "$qml" "$qt" "$tray"
+      chmod u+w "$qml" "$gtk" "$qt" "$tray"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -168,6 +200,17 @@ let
         --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
+      cat >> "$gtk" <<'EOF'
+
+      popover.background modelbutton.flat:hover,
+      popover.background .menuitem.button.flat:hover,
+      menu menuitem:hover,
+      .menu menuitem:hover,
+      .context-menu menuitem:hover {
+        color: @accent_fg_color;
+        background-color: @accent_bg_color;
+      }
+      EOF
     '';
   });
 
@@ -331,7 +374,6 @@ in
     cargo
     clippy
     discord
-    fastfetch
     fira-code
     gh
     gimp
@@ -340,12 +382,18 @@ in
     helium
     inter
     jetbrains-toolbox
+    k0s
+    k3s
     karere
+    kindPodman
     logseq
     lsd
+    opentofu
+    oxkerPodman
     papirusPink
     pear-desktop
     pdfarranger
+    podman-compose
     python3
     qbittorrent
     ristretto
@@ -356,6 +404,7 @@ in
     spotify
     swappy
     telegram-desktop
+    terraform
     dmsVivaldi
     scaledVlc
     wl-clipboard
@@ -421,14 +470,85 @@ in
     "misc-single-click-timeout" = 1;
   };
 
-  programs.bash = {
+  programs.bash.enable = true;
+  programs.nushell.enable = true;
+
+  programs.carapace = {
     enable = true;
-    initExtra = ''
-      if [[ ''${TERM_PROGRAM:-} == ghostty && -z ''${FASTFETCH_DISPLAYED:-} ]]; then
-        export FASTFETCH_DISPLAYED=1
-        fastfetch
-      fi
-    '';
+    enableBashIntegration = false;
+    enableNushellIntegration = true;
+  };
+
+  programs.starship = {
+    enable = true;
+    enableBashIntegration = true;
+    enableNushellIntegration = true;
+    settings = {
+      add_newline = false;
+      command_timeout = 200;
+      scan_timeout = 10;
+      format = "$directory$git_branch$git_status$nix_shell$golang$rust$zig$cmd_duration$status$jobs$line_break$character";
+      directory = {
+        format = "[$path]($style)";
+        read_only = " ro";
+        style = "bold #e91e63";
+        truncate_to_repo = false;
+        truncation_length = 3;
+      };
+      git_branch = {
+        format = " [git:$branch]($style)";
+        style = "bold #f0dee0";
+      };
+      git_status = {
+        ahead = " ^";
+        behind = " v";
+        conflicted = " =";
+        deleted = " x";
+        diverged = " <>";
+        format = "([$all_status$ahead_behind]($style))";
+        modified = " !";
+        renamed = " r";
+        staged = " +";
+        stashed = " *";
+        style = "bold #e91e63";
+        untracked = " ?";
+      };
+      nix_shell = {
+        format = " [nix:$state( $name)]($style)";
+        style = "bold blue";
+      };
+      golang = {
+        format = " [go $version]($style)";
+        style = "bold cyan";
+      };
+      rust = {
+        format = " [rust $version]($style)";
+        style = "bold red";
+      };
+      zig = {
+        format = " [zig $version]($style)";
+        style = "bold yellow";
+      };
+      cmd_duration = {
+        format = " [took $duration]($style)";
+        min_time = 1000;
+        style = "dimmed #f0dee0";
+      };
+      status = {
+        disabled = false;
+        format = " [exit $status]($style)";
+        style = "bold red";
+      };
+      jobs = {
+        format = " [$symbol$number]($style)";
+        style = "bold blue";
+        symbol = "jobs:";
+      };
+      character = {
+        error_symbol = "[>](bold red)";
+        success_symbol = "[>](bold #e91e63)";
+      };
+    };
   };
 
   programs.git = {

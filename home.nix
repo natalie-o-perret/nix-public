@@ -187,7 +187,12 @@ let
       qt="$out/share/quickshell/dms/scripts/qt.sh"
       shell="$out/share/quickshell/dms/DMSShell.qml"
       tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      chmod u+w "$qml" "$gtk" "$qt" "$shell" "$tray"
+      file_browser="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserModal.qml"
+      file_content="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserContent.qml"
+      grid_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserGridDelegate.qml"
+      list_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserListDelegate.qml"
+      caching_image="$out/share/quickshell/dms/Widgets/CachingImage.qml"
+      chmod u+w "$qml" "$gtk" "$qt" "$shell" "$tray" "$file_browser" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -203,6 +208,30 @@ let
         --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
+      substituteInPlace "$file_browser" \
+        --replace-fail 'property bool showHiddenFiles: false' $'property bool showHiddenFiles: false\n    property bool keepContentLoaded: false' \
+        --replace-fail 'active: fileBrowserModal.visible' 'active: fileBrowserModal.visible || fileBrowserModal.keepContentLoaded'
+      substituteInPlace "$file_content" \
+        --replace-fail 'folder: encodeFileUrl(currentPath || homeDir)' 'folder: encodeFileUrl(currentPath || getLastPath())' \
+        --replace-fail 'model: folderModel' 'model: visible ? folderModel : null' \
+        --replace-fail 'cacheBuffer: 260' $'cacheBuffer: 260\n                            reuseItems: true' \
+        --replace-fail 'spacing: Theme.spacingXXS' $'spacing: Theme.spacingXXS\n                            reuseItems: true\n                            add: null\n                            displaced: null\n                            move: null' \
+        --replace-fail 'if (keyboardNavigationActive && currentIndex >= 0)' 'if (visible && keyboardNavigationActive && currentIndex >= 0)' \
+        --replace-fail $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive' $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive\n                                generateVideoThumbnails: false'
+      substituteInPlace "$grid_delegate" \
+        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
+        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
+        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: iconSizes[iconSizeIndex]' \
+        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
+      substituteInPlace "$list_delegate" \
+        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
+        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
+        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: 32' \
+        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
+      substituteInPlace "$caching_image" \
+        --replace-fail 'property bool animate: true' $'property bool animate: true\n    property bool useDiskCache: true' \
+        --replace-fail 'readonly property string cachePath: cacheFileName ?' 'readonly property string cachePath: useDiskCache && cacheFileName ?' \
+        --replace-fail 'if (!hash) {' 'if (!useDiskCache || !hash) {'
       cat >> "$gtk" <<'EOF'
 
       popover.background modelbutton.flat:hover,

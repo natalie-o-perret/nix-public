@@ -20,6 +20,7 @@ PluginComponent {
         browserTitle: "Files"
         browserType: "fileManager"
         fileExtensions: ["*"]
+        keepContentLoaded: true
 
         onFileSelected: path => Qt.openUrlExternally(root.fileUrl(path))
     }

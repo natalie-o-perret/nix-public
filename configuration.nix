@@ -1,5 +1,31 @@
 { pkgs, ... }:
 
+let
+  grubTheme = pkgs.runCommand "nixos-grub-theme" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
+    cp -r ${pkgs.kdePackages.breeze-grub}/grub/themes/breeze "$out"
+    chmod -R u+w "$out"
+    substituteInPlace "$out/theme.txt" \
+      --replace-fail 'Unifont Regular 14' 'DejaVu Sans Mono Regular 32' \
+      --replace-fail 'Unifont Regular 16' 'DejaVu Sans Mono Regular 32' \
+      --replace-fail 'Unifont Bold 16' 'DejaVu Sans Mono Regular 32' \
+      --replace-fail 'top = 50%-225' 'top = 50%-325' \
+      --replace-fail 'left = 50%-400' 'left = 50%-600' \
+      --replace-fail 'width = 800' 'width = 1200' \
+      --replace-fail 'top = 50%-150' 'top = 50%-250' \
+      --replace-fail 'height = 200' 'height = 400' \
+      --replace-fail 'item_height = 33' 'item_height = 48' \
+      --replace-fail 'left = 50%-200' 'left = 50%-600' \
+      --replace-fail 'top = 50%+113' 'top = 50%+240' \
+      --replace-fail 'top = 50%+66' 'top = 50%+195' \
+      --replace-fail 'width = 400' 'width = 1200' \
+      --replace-fail 'height = 19' 'height = 44' \
+      --replace-fail '#7f8c8d' '#b7b7c2' \
+      --replace-fail 'color = "#ffffff"' 'color = "#e91e63"' \
+      --replace-fail 'text_color = "#b7b7c2"' 'text_color = "#e91e63"' \
+      --replace-fail 'desktop-color: "#000000"' 'desktop-color: "#0b0b0f"'
+    magick -size 1x32 'xc:#e91e63' "$out/progress_bar_hl_c.png"
+  '';
+in
 {
   nix.settings.experimental-features = [
     "nix-command"
@@ -7,8 +33,26 @@
   ];
   nixpkgs.config.allowUnfree = true;
 
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
+  boot.loader = {
+    timeout = 5;
+    efi.canTouchEfiVariables = true;
+    grub = {
+      enable = true;
+      device = "nodev";
+      efiSupport = true;
+      efiInstallAsRemovable = false;
+      configurationLimit = 50;
+      splashImage = null;
+      theme = grubTheme;
+      font = "${pkgs.dejavu_fonts}/share/fonts/truetype/DejaVuSansMono.ttf";
+      fontSize = 32;
+    };
+  };
+
+  console = {
+    earlySetup = true;
+    font = "${pkgs.terminus_font}/share/consolefonts/ter-v32n.psf.gz";
+  };
 
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;

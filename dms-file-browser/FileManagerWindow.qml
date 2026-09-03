@@ -2291,7 +2291,6 @@ FloatingWindow {
                             rubberBand.requestUpdate(mouse.x, mouse.y);
                             if (mouse.modifiers === Qt.NoModifier)
                                 root.clearSelection();
-                            rubberBand.anchorIndex = root.indexAtPosition(mouse.x, mouse.y);
                         }
                         onReleased: mouse => {
                             if (mouse.button === Qt.RightButton) {
@@ -2307,7 +2306,6 @@ FloatingWindow {
                     Rectangle {
                         id: rubberBand
 
-                        property int anchorIndex: -1
                         property real currentX: 0
                         property real currentY: 0
                         property bool dragging: false
@@ -2332,19 +2330,36 @@ FloatingWindow {
                             visible = dragging && rectWidth > 2 && rectHeight > 2;
                             if (!visible)
                                 return;
-                            const currentIndex = root.indexAtPosition(x, y);
-                            if (currentIndex < 0 || anchorIndex < 0)
+                            const view = root.viewMode === "grid" ? fileGrid : fileList;
+                            if (!view)
                                 return;
-                            const first = Math.min(anchorIndex, currentIndex);
-                            const last = Math.max(anchorIndex, currentIndex);
                             const next = [];
-                            for (let i = first; i <= last; ++i) {
+                            let bestCurrent = -1;
+                            let bestDistance = Number.POSITIVE_INFINITY;
+                            for (let i = 0; i < folderModel.count; ++i) {
+                                const delegate = view.itemAtIndex(i);
+                                if (!delegate)
+                                    continue;
+                                const topLeft = delegate.mapToItem(blankArea, 0, 0);
+                                const bottomRight = delegate.mapToItem(blankArea, delegate.width, delegate.height);
+                                const overlaps = bottomRight.x >= left && topLeft.x <= right && bottomRight.y >= top && topLeft.y <= bottom;
+                                if (!overlaps)
+                                    continue;
                                 const item = root.itemAt(i);
                                 if (item)
                                     next.push(item);
+                                const dx = (topLeft.x + bottomRight.x) * 0.5 - x;
+                                const dy = (topLeft.y + bottomRight.y) * 0.5 - y;
+                                const distance = dx * dx + dy * dy;
+                                if (distance < bestDistance) {
+                                    bestDistance = distance;
+                                    bestCurrent = i;
+                                }
                             }
-                            root.setSelection(next);
-                            root.currentIndex = currentIndex;
+                            if (next.length > 0)
+                                root.setSelection(next);
+                            if (bestCurrent >= 0)
+                                root.currentIndex = bestCurrent;
                         }
 
                         border.color: Theme.primary
@@ -2419,7 +2434,7 @@ FloatingWindow {
                         anchors.fill: parent
                         anchors.margins: Theme.spacingS
                         boundsBehavior: Flickable.StopAtBounds
-                        cacheBuffer: root.gridCellHeight * 3
+                        cacheBuffer: Math.max(root.gridCellHeight * 6, 600)
                         cellHeight: root.gridCellHeight
                         cellWidth: root.gridCellWidth
                         clip: true
@@ -2459,7 +2474,7 @@ FloatingWindow {
                         anchors.leftMargin: Theme.spacingS
                         anchors.rightMargin: Theme.spacingS
                         boundsBehavior: Flickable.StopAtBounds
-                        cacheBuffer: 400
+                        cacheBuffer: Math.max(fileList.height, 600)
                         clip: true
                         currentIndex: root.currentIndex
                         model: visible ? folderModel : null

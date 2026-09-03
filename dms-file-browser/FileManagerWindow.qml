@@ -1243,10 +1243,14 @@ FloatingWindow {
     }
     function showPath(path) {
         console.warn("dms-files: showPath", String(path || ""));
-        if (!normalizePath(path))
+        const normalized = normalizePath(path);
+        console.warn("dms-files: normalized", normalized);
+        if (!normalized)
             return false;
         show();
+        console.warn("dms-files: requested navigation");
         requestNavigation(path, "push", -1, false);
+        console.warn("dms-files: returning true");
         return true;
     }
     function showPathEditor() {

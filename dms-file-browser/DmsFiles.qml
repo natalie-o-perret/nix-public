@@ -1,6 +1,5 @@
 import QtQuick
 import Quickshell.Io
-import qs.Modals.FileBrowser
 import qs.Modules.Plugins
 
 PluginComponent {
@@ -8,38 +7,25 @@ PluginComponent {
 
     property var popoutService: null
 
-    function fileUrl(path) {
-        if (path.startsWith("file:"))
-            return path;
-        return "file://" + path.split("/").map(encodeURIComponent).join("/");
-    }
-
-    FileBrowserModal {
+    FileManagerWindow {
         id: browser
-
-        browserTitle: "Files"
-        browserType: "fileManager"
-        fileExtensions: ["*"]
-        keepContentLoaded: true
-
-        onFileSelected: path => Qt.openUrlExternally(root.fileUrl(path))
     }
-
     IpcHandler {
-        target: "dmsFiles"
-
         function open(): string {
-            browser.open();
+            browser.show();
             return "opened";
+        }
+        function openPath(path: string): string {
+            return browser.showPath(path) ? "opening" : "invalid path";
+        }
+        function status(): string {
+            return browser.statusJson();
+        }
+        function toggle(): string {
+            browser.toggle();
+            return browser.visible ? "opened" : "closed";
         }
 
-        function toggle(): string {
-            if (browser.visible) {
-                browser.close();
-                return "closed";
-            }
-            browser.open();
-            return "opened";
-        }
+        target: "dmsFiles"
     }
 }

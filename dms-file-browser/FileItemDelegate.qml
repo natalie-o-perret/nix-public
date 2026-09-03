@@ -35,6 +35,11 @@ Rectangle {
     signal filesDropped(var urls, string destination, int action)
     signal prepareDrag(int index)
 
+    function acceptDropAction(event) {
+        if (isInternalDrag(event))
+            return event.proposedAction;
+        return Qt.CopyAction;
+    }
     function formatSize(bytes) {
         const size = Number(bytes) || 0;
         if (size < 1024)
@@ -51,8 +56,18 @@ Rectangle {
             return "docker";
         return suffix || "file";
     }
+    function isInternalDrag(event) {
+        const source = event.source;
+        if (!source)
+            return false;
+        if (source.Window && source.Window.window && source.Window.window === root.Window.window)
+            return true;
+        return false;
+    }
     function supportsDrop(event) {
-        if (!dropEnabled || !event.hasUrls || !(event.supportedActions & Qt.CopyAction))
+        if (!dropEnabled || !event.hasUrls)
+            return false;
+        if (!(event.supportedActions & Qt.CopyAction))
             return false;
         if (event.proposedAction !== Qt.CopyAction && event.proposedAction !== Qt.MoveAction)
             return false;
@@ -192,17 +207,17 @@ Rectangle {
                 drop.accepted = false;
                 return;
             }
-            const proposedAction = drop.proposedAction;
+            const action = root.acceptDropAction(drop);
             const urls = [];
             for (let i = 0; i < drop.urls.length; ++i)
                 urls.push(String(drop.urls[i]));
-            root.filesDropped(urls, root.filePath, proposedAction);
-            drop.accept(Qt.CopyAction);
+            root.filesDropped(urls, root.filePath, action);
+            drop.accept(action);
         }
         onEntered: drag => {
             if (root.supportsDrop(drag)) {
                 root.dropHover = true;
-                drag.accept(Qt.CopyAction);
+                drag.accept(root.acceptDropAction(drag));
             } else {
                 root.dropHover = false;
                 drag.accepted = false;

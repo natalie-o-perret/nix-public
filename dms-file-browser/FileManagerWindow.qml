@@ -59,6 +59,7 @@ FloatingWindow {
     property var jobs: []
     property string modelFolder: ""
     property int nextRequestId: 1
+    property bool pathEditLossGuard: false
     property bool pathEditMode: false
     readonly property var places: [
         {
@@ -375,6 +376,10 @@ FloatingWindow {
         if (activeJobs === 0)
             jobHideTimer.restart();
     }
+    function focusWindow() {
+        if (typeof requestActivate === "function")
+            requestActivate();
+    }
     function formatSize(bytes) {
         const size = Number(bytes) || 0;
         if (size < 1024)
@@ -655,10 +660,23 @@ FloatingWindow {
             showKeyboardMenu();
             event.accepted = true;
             break;
+        case Qt.Key_F6:
+            if (placesList.rowCount() > 0)
+                placesList.forceActiveFocus();
+            event.accepted = true;
+            break;
         }
     }
     function hide() {
         visible = false;
+    }
+    function indexAtPosition(x, y) {
+        const view = viewMode === "grid" ? fileGrid : fileList;
+        if (!view)
+            return -1;
+        const local = viewArea.mapFromItem(blankArea, x, y);
+        const idx = view.indexAt(local.x - view.x, local.y - view.y);
+        return idx;
     }
     function isCut(path) {
         return !!fileClipboard.cut && cutPathMap[path] === true;
@@ -1401,11 +1419,6 @@ FloatingWindow {
             Qt.callLater(() => contentRoot.forceActiveFocus());
         }
     }
-
-    function focusWindow() {
-        if (typeof requestActivate === "function")
-            requestActivate();
-    }
     function trashSelection() {
         if (!backendReady || selection.length === 0)
             return;
@@ -1791,6 +1804,7 @@ FloatingWindow {
                     visible: root.pathEditMode
 
                     Keys.onEscapePressed: {
+                        text = root.currentPath;
                         root.pathEditMode = false;
                         contentRoot.forceActiveFocus();
                     }
@@ -1798,6 +1812,18 @@ FloatingWindow {
                         root.pathEditMode = false;
                         root.requestNavigation(text, "push", -1, false);
                         contentRoot.forceActiveFocus();
+                    }
+                    onActiveFocusChanged: {
+                        if (root.pathEditMode && !activeFocus && !pathEditLossGuard) {
+                            pathEditLossGuard = true;
+                            root.pathEditMode = false;
+                            Qt.callLater(() => {
+                                pathEditLossGuard = false;
+                                if (text && text !== root.currentPath)
+                                    root.requestNavigation(text, "push", -1, false);
+                                contentRoot.forceActiveFocus();
+                            });
+                        }
                     }
                 }
             }
@@ -2010,66 +2036,124 @@ FloatingWindow {
                     font.weight: Font.Medium
                     text: "PLACES"
                 }
-                Column {
+                FocusScope {
+                    id: placesList
+
+                    property int currentIndex: 0
+
+                    function navigate(path) {
+                        if (!path)
+                            return;
+                        root.requestNavigation(path, "push", -1, false);
+                        contentRoot.forceActiveFocus();
+                    }
+                    function rowCount() {
+                        return root.places.length;
+                    }
+
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: Theme.spacingS
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.spacingS
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.spacingS
                     anchors.top: placesTitle.bottom
                     anchors.topMargin: Theme.spacingS
-                    spacing: 2
+                    focus: false
 
-                    Repeater {
-                        model: root.places
+                    Keys.onPressed: event => {
+                        const count = rowCount();
+                        if (count === 0)
+                            return;
+                        if (event.key === Qt.Key_Down) {
+                            currentIndex = Math.min(count - 1, currentIndex + 1);
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Up) {
+                            currentIndex = Math.max(0, currentIndex - 1);
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Home) {
+                            currentIndex = 0;
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_End) {
+                            currentIndex = count - 1;
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            navigate(root.places[currentIndex].path);
+                            event.accepted = true;
+                        } else if (event.key === Qt.Key_Tab) {
+                            event.accepted = false;
+                        }
+                    }
 
-                        Rectangle {
-                            id: placeRow
+                    Column {
+                        anchors.fill: parent
+                        spacing: 2
 
-                            required property var modelData
+                        Repeater {
+                            model: root.places
 
-                            Accessible.name: modelData.name
-                            Accessible.role: Accessible.Button
-                            color: {
-                                if (modelData.path === root.currentPath)
-                                    return Theme.primaryContainer;
-                                return placeArea.containsMouse ? Theme.surfaceVariant : "transparent";
-                            }
-                            enabled: !!modelData.path
-                            height: 36
-                            opacity: enabled ? 1 : 0.4
-                            radius: Theme.cornerRadius
-                            width: parent.width
+                            Rectangle {
+                                id: placeRow
 
-                            DankIcon {
-                                id: placeIcon
+                                required property int index
+                                required property var modelData
 
-                                anchors.left: parent.left
-                                anchors.leftMargin: Theme.spacingS
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: placeRow.modelData.path === root.currentPath ? Theme.primary : Theme.surfaceText
-                                name: placeRow.modelData.icon
-                                size: 19
-                            }
-                            StyledText {
-                                anchors.left: placeIcon.right
-                                anchors.leftMargin: Theme.spacingS
-                                anchors.right: parent.right
-                                anchors.rightMargin: Theme.spacingS
-                                anchors.verticalCenter: parent.verticalCenter
-                                color: placeRow.modelData.path === root.currentPath ? Theme.primary : Theme.surfaceText
-                                elide: Text.ElideRight
-                                font.pixelSize: Theme.fontSizeSmall
-                                text: placeRow.modelData.name
-                            }
-                            MouseArea {
-                                id: placeArea
+                                Accessible.name: modelData.name
+                                Accessible.role: Accessible.Button
+                                border.color: placesList.currentIndex === placeRow.index && placesList.focus ? Theme.primary : "transparent"
+                                border.width: placesList.currentIndex === placeRow.index && placesList.focus ? 1 : 0
+                                color: {
+                                    if (modelData.path === root.currentPath)
+                                        return Theme.primaryContainer;
+                                    if (placesList.currentIndex === placeRow.index && placesList.focus)
+                                        return Theme.surfaceVariant;
+                                    return placeArea.containsMouse ? Theme.surfaceVariant : "transparent";
+                                }
+                                enabled: !!modelData.path
+                                height: 36
+                                opacity: enabled ? 1 : 0.4
+                                radius: Theme.cornerRadius
+                                width: parent.width
 
-                                anchors.fill: parent
-                                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-                                enabled: placeRow.enabled
-                                hoverEnabled: true
+                                DankIcon {
+                                    id: placeIcon
 
-                                onClicked: root.requestNavigation(placeRow.modelData.path, "push", -1, false)
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: Theme.spacingS
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: placeRow.modelData.path === root.currentPath ? Theme.primary : Theme.surfaceText
+                                    name: placeRow.modelData.icon
+                                    size: 19
+                                }
+                                StyledText {
+                                    anchors.left: placeIcon.right
+                                    anchors.leftMargin: Theme.spacingS
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: Theme.spacingS
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: placeRow.modelData.path === root.currentPath ? Theme.primary : Theme.surfaceText
+                                    elide: Text.ElideRight
+                                    font.pixelSize: Theme.fontSizeSmall
+                                    text: placeRow.modelData.name
+                                }
+                                MouseArea {
+                                    id: placeArea
+
+                                    anchors.fill: parent
+                                    cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                                    enabled: placeRow.enabled
+                                    hoverEnabled: true
+
+                                    onClicked: {
+                                        placesList.currentIndex = placeRow.index;
+                                        placesList.forceActiveFocus();
+                                        placesList.navigate(placeRow.modelData.path);
+                                    }
+                                    onDoubleClicked: {
+                                        placesList.currentIndex = placeRow.index;
+                                        placesList.forceActiveFocus();
+                                    }
+                                }
                             }
                         }
                     }
@@ -2190,35 +2274,142 @@ FloatingWindow {
                         anchors.fill: parent
 
                         onClicked: mouse => {
-                            contentRoot.forceActiveFocus();
+                            if (mouse.button !== Qt.RightButton)
+                                return;
+                            actionMenu.showAt(contentRoot, filePane.x + mouse.x, viewArea.y + mouse.y + body.y, root.blankMenuItems(), false);
+                        }
+                        onPositionChanged: mouse => {
+                            if (rubberBand.dragging)
+                                rubberBand.requestUpdate(mouse.x, mouse.y);
+                        }
+                        onPressed: mouse => {
                             if (mouse.button === Qt.RightButton)
-                                actionMenu.showAt(contentRoot, filePane.x + mouse.x, viewArea.y + mouse.y + body.y, root.blankMenuItems(), false);
-                            else
+                                return;
+                            rubberBand.startX = mouse.x;
+                            rubberBand.startY = mouse.y;
+                            rubberBand.dragging = true;
+                            rubberBand.requestUpdate(mouse.x, mouse.y);
+                            if (mouse.modifiers === Qt.NoModifier)
                                 root.clearSelection();
+                            rubberBand.anchorIndex = root.indexAtPosition(mouse.x, mouse.y);
+                        }
+                        onReleased: mouse => {
+                            if (mouse.button === Qt.RightButton) {
+                                rubberBand.dragging = false;
+                                rubberBand.requestUpdate(mouse.x, mouse.y);
+                                return;
+                            }
+                            rubberBand.dragging = false;
+                            rubberBand.requestUpdate(mouse.x, mouse.y);
+                            contentRoot.forceActiveFocus();
+                        }
+                    }
+                    Rectangle {
+                        id: rubberBand
+
+                        property int anchorIndex: -1
+                        property real currentX: 0
+                        property real currentY: 0
+                        property bool dragging: false
+                        property real rectHeight: 0
+                        property real rectWidth: 0
+                        property real startX: 0
+                        property real startY: 0
+                        property real xPos: 0
+                        property real yPos: 0
+
+                        function requestUpdate(x, y) {
+                            currentX = x;
+                            currentY = y;
+                            const left = Math.min(startX, currentX);
+                            const top = Math.min(startY, currentY);
+                            const right = Math.max(startX, currentX);
+                            const bottom = Math.max(startY, currentY);
+                            xPos = left;
+                            yPos = top;
+                            rectWidth = right - left;
+                            rectHeight = bottom - top;
+                            visible = dragging && rectWidth > 2 && rectHeight > 2;
+                            if (!visible)
+                                return;
+                            const currentIndex = root.indexAtPosition(x, y);
+                            if (currentIndex < 0 || anchorIndex < 0)
+                                return;
+                            const first = Math.min(anchorIndex, currentIndex);
+                            const last = Math.max(anchorIndex, currentIndex);
+                            const next = [];
+                            for (let i = first; i <= last; ++i) {
+                                const item = root.itemAt(i);
+                                if (item)
+                                    next.push(item);
+                            }
+                            root.setSelection(next);
+                            root.currentIndex = currentIndex;
+                        }
+
+                        border.color: Theme.primary
+                        border.width: 1
+                        color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12)
+                        height: 0
+                        visible: false
+                        width: 0
+                        x: 0
+                        y: 0
+                        z: 50
+
+                        Binding on height {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.rectHeight
+                            when: rubberBand.dragging
+                        }
+                        Binding on width {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.rectWidth
+                            when: rubberBand.dragging
+                        }
+                        Binding on x {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.xPos
+                            when: rubberBand.dragging
+                        }
+                        Binding on y {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.yPos
+                            when: rubberBand.dragging
                         }
                     }
                     DropArea {
+                        function acceptAction(drag) {
+                            if (!root.supportsDrop(drag))
+                                return -1;
+                            const source = drag.source;
+                            if (source && source.Window && source.Window.window && source.Window.window === root.Window.window)
+                                return drag.proposedAction;
+                            return Qt.CopyAction;
+                        }
+
                         anchors.fill: parent
 
                         onDropped: drop => {
-                            if (!root.supportsDrop(drop)) {
+                            const realAction = acceptAction(drop);
+                            if (realAction < 0) {
                                 drop.accepted = false;
                                 return;
                             }
-                            const proposedAction = drop.proposedAction;
                             const urls = [];
                             for (let i = 0; i < drop.urls.length; ++i)
                                 urls.push(String(drop.urls[i]));
-                            if (root.handleDrop(urls, root.currentPath, proposedAction))
-                                drop.accept(Qt.CopyAction);
+                            if (root.handleDrop(urls, root.currentPath, realAction))
+                                drop.accept(realAction);
                             else
                                 drop.accepted = false;
                         }
                         onEntered: drag => {
-                            if (root.supportsDrop(drag))
-                                drag.accept(Qt.CopyAction);
-                            else
+                            const realAction = acceptAction(drag);
+                            if (realAction < 0)
                                 drag.accepted = false;
+                            else
+                                drag.accept(realAction);
                         }
                     }
                     DankGridView {

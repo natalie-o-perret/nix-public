@@ -1242,6 +1242,7 @@ FloatingWindow {
         Qt.callLater(() => conflictDialog.forceActiveFocus());
     }
     function showPath(path) {
+        console.warn("dms-files: showPath", String(path || ""));
         if (!normalizePath(path))
             return false;
         show();

@@ -11,6 +11,8 @@ PluginComponent {
         id: browser
     }
     IpcHandler {
+        target: "dmsFiles"
+
         function open(): string {
             browser.show();
             return "opened";
@@ -25,7 +27,5 @@ PluginComponent {
             browser.toggle();
             return browser.visible ? "opened" : "closed";
         }
-
-        target: "dmsFiles"
     }
 }

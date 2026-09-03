@@ -17,8 +17,8 @@ PluginComponent {
             browser.show();
             return "opened";
         }
-        function openPath(path: string): string {
-            return browser.showPath(path) ? "opening" : "invalid path";
+        function openPath(path): string {
+            return browser.showPath(String(path || "")) ? "opening" : "invalid path";
         }
         function status(): string {
             return browser.statusJson();

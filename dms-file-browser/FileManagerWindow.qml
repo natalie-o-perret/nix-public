@@ -1215,7 +1215,7 @@ FloatingWindow {
     }
     function show() {
         visible = true;
-        requestActivate();
+        focusWindow();
         Qt.callLater(() => contentRoot.forceActiveFocus());
     }
     function showKeyboardMenu() {
@@ -1402,9 +1402,14 @@ FloatingWindow {
     function toggle() {
         visible = !visible;
         if (visible) {
-            requestActivate();
+            focusWindow();
             Qt.callLater(() => contentRoot.forceActiveFocus());
         }
+    }
+
+    function focusWindow() {
+        if (typeof requestActivate === "function")
+            requestActivate();
     }
     function trashSelection() {
         if (!backendReady || selection.length === 0)

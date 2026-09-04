@@ -2962,14 +2962,19 @@ FloatingWindow {
         background: Rectangle {
             color: "transparent"
         }
-        contentItem: Rectangle {
+        contentItem: Item {
             Accessible.name: deletionConfirmPopup.popupTitle
             Accessible.role: Accessible.Dialog
-            border.color: Theme.outlineMedium
-            border.width: 1
-            color: Theme.floatingSurface
-            radius: Theme.cornerRadius
+            implicitHeight: confirmColumn.implicitHeight + Theme.spacingL * 2
+            implicitWidth: Math.min(560, Math.max(360, confirmColumn.implicitWidth + Theme.spacingL * 2))
 
+            Rectangle {
+                anchors.fill: parent
+                border.color: Theme.outlineMedium
+                border.width: 1
+                color: Theme.floatingSurface
+                radius: Theme.cornerRadius
+            }
             Column {
                 id: confirmColumn
 

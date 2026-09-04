@@ -500,14 +500,19 @@ FloatingWindow {
             });
             break;
         case "progress":
-            patchJob(id, {
-                "status": "running",
-                "itemsDone": Number(event.itemsDone || 0),
-                "itemsTotal": Number(event.itemsTotal || 1),
-                "bytesDone": Number(event.bytesDone || 0),
-                "bytesTotal": Number(event.bytesTotal || 0),
-                "current": pathFromUrl(event.current || "")
-            });
+            {
+                const map = pendingProgress;
+                map[id] = {
+                    "status": "running",
+                    "itemsDone": Number(event.itemsDone || 0),
+                    "itemsTotal": Number(event.itemsTotal || 1),
+                    "bytesDone": Number(event.bytesDone || 0),
+                    "bytesTotal": Number(event.bytesTotal || 0),
+                    "current": pathFromUrl(event.current || "")
+                };
+                pendingProgress = map;
+                flushProgress();
+            }
             break;
         case "conflict":
             {
@@ -1497,10 +1502,8 @@ FloatingWindow {
     Component.onCompleted: loadSettings()
     onClosed: hide()
     onCurrentPathChanged: scheduleSettingsSave()
-    onSearchTextChanged: {
-        searchDebounce.restart();
-        clearSelection();
-    }
+    onSearchTextChanged: searchDebounce.restart()
+    onAppliedSearchTextChanged: clearSelection()
     onShowHiddenChanged: scheduleSettingsSave()
     onShowSidebarChanged: scheduleSettingsSave()
     onSortAscendingChanged: scheduleSettingsSave()
@@ -1558,6 +1561,28 @@ FloatingWindow {
             if (!backendProcess.running)
                 backendProcess.running = true;
         }
+    }
+
+    property var pendingProgress: ({})
+    Timer {
+        id: progressFlushTimer
+        interval: 16
+        repeat: false
+        onTriggered: {
+            const map = pendingProgress;
+            pendingProgress = ({}});
+            for (const idStr in map) {
+                const id = Number(idStr);
+                const data = map[idStr];
+                if (data.itemsDone !== undefined)
+                    patchJob(id, data);
+            }
+        }
+    }
+    function flushProgress() {
+        if (progressFlushTimer.running)
+            return;
+        progressFlushTimer.restart();
     }
     Process {
         id: pathProbe
@@ -2360,72 +2385,96 @@ FloatingWindow {
                         property real currentX: 0
                         property real currentY: 0
                         property bool dragging: false
-                        property real rectHeight: 0
-                        property real rectWidth: 0
                         property real startX: 0
                         property real startY: 0
-                        property real xPos: 0
-                        property real yPos: 0
+                        property int lastCurrent: -1
+                        property int lastHitCount: -1
+                        readonly property real rectLeft: Math.min(startX, currentX)
+                        readonly property real rectTop: Math.min(startY, currentY)
+                        readonly property real rectRight: Math.max(startX, currentX)
+                        readonly property real rectBottom: Math.max(startY, currentY)
+                        readonly property real rectWidth: rectRight - rectLeft
+                        readonly property real rectHeight: rectBottom - rectTop
+                        readonly property bool active: dragging && rectWidth > 2 && rectHeight > 2
 
                         function requestUpdate(x, y) {
                             currentX = x;
                             currentY = y;
-                            const left = Math.min(startX, currentX);
-                            const top = Math.min(startY, currentY);
-                            const right = Math.max(startX, currentX);
-                            const bottom = Math.max(startY, currentY);
-                            xPos = left;
-                            yPos = top;
-                            rectWidth = right - left;
-                            rectHeight = bottom - top;
-                            visible = dragging && rectWidth > 2 && rectHeight > 2;
-                            if (!visible)
+                            visible = active;
+                            rubberBand.scheduleHitTest();
+                        }
+
+                        function scheduleHitTest() {
+                            if (!dragging || !active)
+                                return;
+                            rubberBandHitTestTimer.restart();
+                        }
+
+                        function runHitTest() {
+                            if (!dragging || !active)
                                 return;
                             const view = root.viewMode === "grid" ? fileGrid : fileList;
                             if (!view)
                                 return;
+                            const left = rectLeft;
+                            const top = rectTop;
+                            const right = rectRight;
+                            const bottom = rectBottom;
                             const next = [];
                             let bestCurrent = -1;
                             let bestDistance = Number.POSITIVE_INFINITY;
-                            for (let i = 0; i < folderModel.count; ++i) {
+                            const targetX = currentX;
+                            const targetY = currentY;
+                            const n = folderModel.count;
+                            for (let i = 0; i < n; ++i) {
                                 const delegate = view.itemAtIndex(i);
                                 if (!delegate)
                                     continue;
                                 const topLeft = delegate.mapToItem(blankArea, 0, 0);
-                                const bottomRight = delegate.mapToItem(blankArea, delegate.width, delegate.height);
-                                const overlaps = bottomRight.x >= left && topLeft.x <= right && bottomRight.y >= top && topLeft.y <= bottom;
-                                if (!overlaps)
+                                const bottomRight = delegate.mapToItem(blankArea,
+                                    delegate.width, delegate.height);
+                                if (bottomRight.x < left || topLeft.x > right
+                                    || bottomRight.y < top || topLeft.y > bottom)
                                     continue;
-                                const item = root.itemAt(i);
-                                if (item)
-                                    next.push(item);
-                                const dx = (topLeft.x + bottomRight.x) * 0.5 - x;
-                                const dy = (topLeft.y + bottomRight.y) * 0.5 - y;
+                                next.push({
+                                    "path": delegate.filePath,
+                                    "name": delegate.fileName,
+                                    "isDir": delegate.fileIsDir,
+                                    "size": delegate.fileSize,
+                                    "modified": delegate.fileModified,
+                                    "suffix": delegate.fileSuffix
+                                });
+                                const dx = (topLeft.x + bottomRight.x) * 0.5 - targetX;
+                                const dy = (topLeft.y + bottomRight.y) * 0.5 - targetY;
                                 const distance = dx * dx + dy * dy;
                                 if (distance < bestDistance) {
                                     bestDistance = distance;
                                     bestCurrent = i;
                                 }
                             }
-                            if (next.length > 0)
-                                root.setSelection(next);
-                            if (bestCurrent >= 0)
-                                root.currentIndex = bestCurrent;
+                            lastHitCount = next.length;
+                            lastCurrent = bestCurrent;
+                            if (next.length === 0)
+                                return;
+                            root.setSelection(next);
+                            root.currentIndex = bestCurrent;
                         }
 
                         border.color: Theme.primary
                         border.width: 1
                         color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.12)
                         height: 0
-                        visible: false
                         width: 0
-                        x: 0
-                        y: 0
                         z: 50
 
-                        Binding on height {
+                        Binding on x {
                             restoreMode: Binding.RestoreBindingOrValue
-                            value: rubberBand.rectHeight
+                            value: rubberBand.rectLeft
+                            when: rubberBand.dragging
+                        }
+                        Binding on y {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.rectTop
                             when: rubberBand.dragging
                         }
                         Binding on width {
@@ -2433,16 +2482,17 @@ FloatingWindow {
                             value: rubberBand.rectWidth
                             when: rubberBand.dragging
                         }
-                        Binding on x {
+                        Binding on height {
                             restoreMode: Binding.RestoreBindingOrValue
-                            value: rubberBand.xPos
+                            value: rubberBand.rectHeight
                             when: rubberBand.dragging
                         }
-                        Binding on y {
-                            restoreMode: Binding.RestoreBindingOrValue
-                            value: rubberBand.yPos
-                            when: rubberBand.dragging
-                        }
+                    }
+                    Timer {
+                        id: rubberBandHitTestTimer
+                        interval: 16
+                        repeat: false
+                        onTriggered: rubberBand.runHitTest()
                     }
                     DropArea {
                         function acceptAction(drag) {

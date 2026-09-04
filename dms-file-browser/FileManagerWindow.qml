@@ -62,6 +62,7 @@ FloatingWindow {
     property int nextRequestId: 1
     property bool pathEditLossGuard: false
     property bool pathEditMode: false
+    property var pendingProgress: ({})
     readonly property var places: [
         {
             "name": "Home",
@@ -432,6 +433,11 @@ FloatingWindow {
         }
         if (activeJobs === 0)
             jobHideTimer.restart();
+    }
+    function flushProgress() {
+        if (progressFlushTimer.running)
+            return;
+        progressFlushTimer.restart();
     }
     function focusWindow() {
         if (typeof requestActivate === "function")
@@ -1500,10 +1506,10 @@ FloatingWindow {
     visible: false
 
     Component.onCompleted: loadSettings()
+    onAppliedSearchTextChanged: clearSelection()
     onClosed: hide()
     onCurrentPathChanged: scheduleSettingsSave()
     onSearchTextChanged: searchDebounce.restart()
-    onAppliedSearchTextChanged: clearSelection()
     onShowHiddenChanged: scheduleSettingsSave()
     onShowSidebarChanged: scheduleSettingsSave()
     onSortAscendingChanged: scheduleSettingsSave()
@@ -1562,15 +1568,15 @@ FloatingWindow {
                 backendProcess.running = true;
         }
     }
-
-    property var pendingProgress: ({})
     Timer {
         id: progressFlushTimer
+
         interval: 16
         repeat: false
+
         onTriggered: {
             const map = pendingProgress;
-            pendingProgress = ({}});
+            pendingProgress = ({});
             for (const idStr in map) {
                 const id = Number(idStr);
                 const data = map[idStr];
@@ -1578,11 +1584,6 @@ FloatingWindow {
                     patchJob(id, data);
             }
         }
-    }
-    function flushProgress() {
-        if (progressFlushTimer.running)
-            return;
-        progressFlushTimer.restart();
     }
     Process {
         id: pathProbe
@@ -2382,20 +2383,20 @@ FloatingWindow {
                     Rectangle {
                         id: rubberBand
 
+                        readonly property bool active: dragging && rectWidth > 2 && rectHeight > 2
                         property real currentX: 0
                         property real currentY: 0
                         property bool dragging: false
-                        property real startX: 0
-                        property real startY: 0
                         property int lastCurrent: -1
                         property int lastHitCount: -1
-                        readonly property real rectLeft: Math.min(startX, currentX)
-                        readonly property real rectTop: Math.min(startY, currentY)
-                        readonly property real rectRight: Math.max(startX, currentX)
                         readonly property real rectBottom: Math.max(startY, currentY)
-                        readonly property real rectWidth: rectRight - rectLeft
                         readonly property real rectHeight: rectBottom - rectTop
-                        readonly property bool active: dragging && rectWidth > 2 && rectHeight > 2
+                        readonly property real rectLeft: Math.min(startX, currentX)
+                        readonly property real rectRight: Math.max(startX, currentX)
+                        readonly property real rectTop: Math.min(startY, currentY)
+                        readonly property real rectWidth: rectRight - rectLeft
+                        property real startX: 0
+                        property real startY: 0
 
                         function requestUpdate(x, y) {
                             currentX = x;
@@ -2403,13 +2404,6 @@ FloatingWindow {
                             visible = active;
                             rubberBand.scheduleHitTest();
                         }
-
-                        function scheduleHitTest() {
-                            if (!dragging || !active)
-                                return;
-                            rubberBandHitTestTimer.restart();
-                        }
-
                         function runHitTest() {
                             if (!dragging || !active)
                                 return;
@@ -2431,10 +2425,8 @@ FloatingWindow {
                                 if (!delegate)
                                     continue;
                                 const topLeft = delegate.mapToItem(blankArea, 0, 0);
-                                const bottomRight = delegate.mapToItem(blankArea,
-                                    delegate.width, delegate.height);
-                                if (bottomRight.x < left || topLeft.x > right
-                                    || bottomRight.y < top || topLeft.y > bottom)
+                                const bottomRight = delegate.mapToItem(blankArea, delegate.width, delegate.height);
+                                if (bottomRight.x < left || topLeft.x > right || bottomRight.y < top || topLeft.y > bottom)
                                     continue;
                                 next.push({
                                     "path": delegate.filePath,
@@ -2459,6 +2451,11 @@ FloatingWindow {
                             root.setSelection(next);
                             root.currentIndex = bestCurrent;
                         }
+                        function scheduleHitTest() {
+                            if (!dragging || !active)
+                                return;
+                            rubberBandHitTestTimer.restart();
+                        }
 
                         border.color: Theme.primary
                         border.width: 1
@@ -2467,6 +2464,16 @@ FloatingWindow {
                         width: 0
                         z: 50
 
+                        Binding on height {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.rectHeight
+                            when: rubberBand.dragging
+                        }
+                        Binding on width {
+                            restoreMode: Binding.RestoreBindingOrValue
+                            value: rubberBand.rectWidth
+                            when: rubberBand.dragging
+                        }
                         Binding on x {
                             restoreMode: Binding.RestoreBindingOrValue
                             value: rubberBand.rectLeft
@@ -2477,21 +2484,13 @@ FloatingWindow {
                             value: rubberBand.rectTop
                             when: rubberBand.dragging
                         }
-                        Binding on width {
-                            restoreMode: Binding.RestoreBindingOrValue
-                            value: rubberBand.rectWidth
-                            when: rubberBand.dragging
-                        }
-                        Binding on height {
-                            restoreMode: Binding.RestoreBindingOrValue
-                            value: rubberBand.rectHeight
-                            when: rubberBand.dragging
-                        }
                     }
                     Timer {
                         id: rubberBandHitTestTimer
+
                         interval: 16
                         repeat: false
+
                         onTriggered: rubberBand.runHitTest()
                     }
                     DropArea {

@@ -19,8 +19,14 @@ Rectangle {
     property bool gridMode: false
     readonly property bool imageFile: !fileIsDir && ["avif", "bmp", "gif", "heif", "ico", "jpeg", "jpg", "jxl", "png", "svg", "webp"].includes(suffix)
     required property int index
-    property bool selected: false
-    property int sizeColumnWidth: 84
+    readonly property var itemData: ({
+            "path": filePath,
+            "name": fileName,
+            "isDir": fileIsDir,
+            "size": fileSize,
+            "modified": fileModified,
+            "suffix": suffix
+        })
     readonly property string suffix: {
         const dot = fileName.lastIndexOf(".");
         return dot > 0 ? fileName.slice(dot + 1).toLowerCase() : "";
@@ -29,7 +35,7 @@ Rectangle {
     property int typeColumnWidth: 104
     readonly property string typeText: fileIsDir ? "Folder" : (suffix ? suffix.toUpperCase() + " file" : "File")
 
-    signal clicked(int index, int modifiers)
+    signal clicked(int index, var item, int modifiers)
     signal contextRequested(var sender, real x, real y, int index)
     signal doubleClicked(int index)
     signal filesDropped(var urls, string destination, int action)
@@ -237,7 +243,7 @@ Rectangle {
             if (mouse.button === Qt.RightButton)
                 root.contextRequested(root, mouse.x, mouse.y, root.index);
             else
-                root.clicked(root.index, mouse.modifiers);
+                root.clicked(root.index, root.itemData, mouse.modifiers);
         }
         onDoubleClicked: mouse => {
             if (mouse.button === Qt.LeftButton)

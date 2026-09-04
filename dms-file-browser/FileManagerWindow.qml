@@ -51,6 +51,7 @@ FloatingWindow {
             "sources": [],
             "cut": false
         })
+    property var fileUrlCache: ({})
     readonly property int gridCellHeight: 146
     readonly property int gridCellWidth: 132
     readonly property int gridColumns: Math.max(1, Math.floor(fileGrid.width / gridCellWidth))
@@ -265,6 +266,7 @@ FloatingWindow {
             historyIndex = next.length - 1;
         }
         currentPath = normalized;
+        fileUrlCache = ({});
         modelFolder = fileUrl(normalized);
         pathEditMode = false;
         searchField.text = "";
@@ -384,9 +386,17 @@ FloatingWindow {
     function fileUrl(path) {
         if (!path)
             return "";
+        const key = path;
+        const cached = fileUrlCache[key];
+        if (cached !== undefined)
+            return cached;
+        let value;
         if (String(path).startsWith("file:"))
-            return String(path);
-        return "file://" + String(path).split("/").map(encodeURIComponent).join("/");
+            value = String(path);
+        else
+            value = "file://" + String(path).split("/").map(encodeURIComponent).join("/");
+        fileUrlCache[key] = value;
+        return value;
     }
     function finishJob(id, event) {
         const record = requestRecords[id];
@@ -1223,25 +1233,51 @@ FloatingWindow {
         }
     }
     function selectIndex(index, modifiers) {
-        const item = itemAt(index);
+        if (index < 0 || index >= folderModel.count)
+            return;
+        return selectItem(itemAt(index), modifiers, index);
+    }
+    function selectItem(item, modifiers, index) {
         if (!item)
             return;
         const control = !!(modifiers & Qt.ControlModifier);
         const shift = !!(modifiers & Qt.ShiftModifier);
-        currentIndex = index;
+        if (index !== undefined && index >= 0 && index < folderModel.count) {
+            currentIndex = index;
+        }
         currentItemPath = item.path;
 
-        if (shift && selectionAnchor >= 0) {
+        if (shift && selectionAnchor >= 0 && !control) {
             const first = Math.min(selectionAnchor, index);
             const last = Math.max(selectionAnchor, index);
-            const next = control ? selection.slice() : [];
+            const next = [];
             for (let i = first; i <= last; ++i) {
                 const candidate = itemAt(i);
-                if (candidate && (!control || selectedPathMap[candidate.path] === undefined))
+                if (candidate)
                     next.push(candidate);
             }
             setSelection(next);
-        } else if (control) {
+            selectionAnchor = index;
+            ensureCurrentVisible();
+            return;
+        }
+        if (shift && selectionAnchor >= 0 && control) {
+            const first = Math.min(selectionAnchor, index);
+            const last = Math.max(selectionAnchor, index);
+            const next = selection.slice();
+            for (let i = first; i <= last; ++i) {
+                const candidate = itemAt(i);
+                if (!candidate)
+                    continue;
+                if (selectedPathMap[candidate.path] === undefined)
+                    next.push(candidate);
+            }
+            setSelection(next);
+            selectionAnchor = index;
+            ensureCurrentVisible();
+            return;
+        }
+        if (control) {
             const existing = selectedPathMap[item.path];
             const next = selection.slice();
             if (existing !== undefined)
@@ -1250,10 +1286,11 @@ FloatingWindow {
                 next.push(item);
             setSelection(next);
             selectionAnchor = index;
-        } else {
-            setSelection([item]);
-            selectionAnchor = index;
+            ensureCurrentVisible();
+            return;
         }
+        setSelection([item]);
+        selectionAnchor = index;
         ensureCurrentVisible();
     }
     function selectedPaths() {
@@ -2546,23 +2583,23 @@ FloatingWindow {
                         delegate: FileItemDelegate {
                             current: index === root.currentIndex
                             cut: root.isCut(filePath)
-                            dragUrls: selected ? root.selectedDragUrls : [root.fileUrl(filePath)]
+                            dragUrls: selected ? root.selectedDragUrls : [fileUrl]
                             dropEnabled: root.backendReady
                             gridMode: true
                             height: root.gridCellHeight - Theme.spacingS
                             selected: root.isSelected(filePath)
                             width: root.gridCellWidth - Theme.spacingS
 
-                            onClicked: (itemIndex, modifiers) => {
+                            onClicked: (itemIndex, item, modifiers) => {
                                 contentRoot.forceActiveFocus();
-                                root.selectIndex(itemIndex, modifiers);
+                                root.selectItem(item, modifiers, itemIndex);
                             }
                             onContextRequested: (sender, x, y, itemIndex) => root.showMenuForItem(sender, x, y, itemIndex)
                             onDoubleClicked: itemIndex => root.activateItem(itemIndex)
                             onFilesDropped: (urls, destination, action) => root.handleDrop(urls, destination, action)
                             onPrepareDrag: itemIndex => {
                                 if (!root.isSelected(filePath))
-                                    root.selectIndex(itemIndex, Qt.NoModifier);
+                                    root.selectItem(root.itemData, Qt.NoModifier, root.index);
                             }
                         }
                     }
@@ -2585,23 +2622,23 @@ FloatingWindow {
                         delegate: FileItemDelegate {
                             current: index === root.currentIndex
                             cut: root.isCut(filePath)
-                            dragUrls: selected ? root.selectedDragUrls : [root.fileUrl(filePath)]
+                            dragUrls: selected ? root.selectedDragUrls : [fileUrl]
                             dropEnabled: root.backendReady
                             gridMode: false
                             height: 44
                             selected: root.isSelected(filePath)
                             width: fileList.width
 
-                            onClicked: (itemIndex, modifiers) => {
+                            onClicked: (itemIndex, item, modifiers) => {
                                 contentRoot.forceActiveFocus();
-                                root.selectIndex(itemIndex, modifiers);
+                                root.selectItem(item, modifiers, itemIndex);
                             }
                             onContextRequested: (sender, x, y, itemIndex) => root.showMenuForItem(sender, x, y, itemIndex)
                             onDoubleClicked: itemIndex => root.activateItem(itemIndex)
                             onFilesDropped: (urls, destination, action) => root.handleDrop(urls, destination, action)
                             onPrepareDrag: itemIndex => {
                                 if (!root.isSelected(filePath))
-                                    root.selectIndex(itemIndex, Qt.NoModifier);
+                                    root.selectItem(root.itemData, Qt.NoModifier, root.index);
                             }
                         }
                     }

@@ -21,6 +21,7 @@ FloatingWindow {
     }
     property string appliedSearchText: ""
     property bool backendReady: false
+    property bool confirmDelete: true
     property var conflictEvents: ({})
     property var conflictQueue: []
     property var currentConflict: null
@@ -271,6 +272,29 @@ FloatingWindow {
         clearSelection();
         scheduleSettingsSave();
     }
+    function confirmDeletion(op, paths) {
+        if (!confirmDelete || paths.length === 0) {
+            runDeletion(op, paths);
+            return;
+        }
+        const preview = deletionPreview(paths);
+        const title = op === "delete" ? "Delete Permanently?" : "Move to Trash?";
+        const confirmText = op === "delete" ? "Delete" : "Move to Trash";
+        const damageNote = op === "delete" ? "Deleted files cannot be recovered." : "Items can be restored from the Trash until it is emptied.";
+        const sections = [preview.summary];
+        if (preview.size && preview.size !== "0 B")
+            sections.push("Total size: " + preview.size);
+        sections.push(damageNote);
+        if (preview.names.length > 0)
+            sections.push(preview.names.join("\n") + (preview.remainder > 0 ? "\n… and " + preview.remainder + " more" : ""));
+        confirmModal.showWithOptions({
+            "title": title,
+            "message": sections.join("\n\n"),
+            "confirmText": confirmText,
+            "confirmColor": Theme.error,
+            "onConfirm": () => runDeletion(op, paths)
+        });
+    }
     function copyPaths() {
         if (selection.length > 0)
             Quickshell.clipboardText = selectedPaths().join("\n");
@@ -304,6 +328,39 @@ FloatingWindow {
     }
     function createMenuItems() {
         return blankMenuItems().slice(0, 2);
+    }
+    function deletionPreview(paths) {
+        let files = 0;
+        let dirs = 0;
+        let bytes = 0;
+        const names = [];
+        for (const item of selection) {
+            if (paths.indexOf(item.path) < 0)
+                continue;
+            if (item.isDir)
+                dirs++;
+            else {
+                files++;
+                bytes += Number(item.size) || 0;
+            }
+            if (names.length < 12)
+                names.push(item.name);
+        }
+        const parts = [];
+        if (files > 0)
+            parts.push(files + " file" + (files === 1 ? "" : "s"));
+        if (dirs > 0)
+            parts.push(dirs + " folder" + (dirs === 1 ? "" : "s"));
+        const summary = parts.length > 0 ? "Delete " + parts.join(" and ") + "?" : "Delete " + paths.length + " item" + (paths.length === 1 ? "" : "s") + "?";
+        const size = formatSize(bytes);
+        const total = paths.length;
+        const remainder = total - names.length;
+        return {
+            "summary": summary,
+            "size": size,
+            "names": names,
+            "remainder": remainder
+        };
     }
     function duplicateSelection() {
         if (!backendReady || selection.length === 0)
@@ -819,6 +876,7 @@ FloatingWindow {
         sortAscending = settings.sortAscending !== undefined ? !!settings.sortAscending : true;
         showSidebar = settings.showSidebar !== undefined ? !!settings.showSidebar : true;
         showHidden = settings.showHidden !== undefined ? !!settings.showHidden : false;
+        confirmDelete = settings.confirmDelete !== undefined ? !!settings.confirmDelete : true;
         settingsLoaded = true;
         requestNavigation(settings.lastPath || homePath, "reset", -1, true);
     }
@@ -917,18 +975,7 @@ FloatingWindow {
         if (!backendReady || selection.length === 0)
             return;
         const paths = selectedPaths();
-        confirmModal.showWithOptions({
-            "title": "Delete Permanently?",
-            "message": "Delete " + paths.length + " item(s)? This cannot be undone.",
-            "confirmText": "Delete",
-            "confirmColor": Theme.error,
-            "onConfirm": () => submitJob({
-                    "op": "delete",
-                    "sources": paths
-                }, {
-                    "removeSelection": paths
-                })
-        });
+        confirmDeletion("delete", paths);
     }
     function promptConflictRename(conflict, request, options) {
         const destination = pathFromUrl(conflict.event.destination || request.destination);
@@ -1122,6 +1169,14 @@ FloatingWindow {
             Qt.callLater(showNextConflict);
         }
     }
+    function runDeletion(op, paths) {
+        submitJob({
+            "op": op,
+            "sources": paths
+        }, {
+            "removeSelection": paths
+        });
+    }
     function saveSettings() {
         if (!settingsLoaded)
             return;
@@ -1132,7 +1187,8 @@ FloatingWindow {
             "sortBy": sortBy,
             "sortAscending": sortAscending,
             "showSidebar": showSidebar,
-            "showHidden": showHidden
+            "showHidden": showHidden,
+            "confirmDelete": confirmDelete
         };
         CacheData.fileBrowserSettings = allSettings;
         CacheData.saveCache();
@@ -1423,12 +1479,7 @@ FloatingWindow {
         if (!backendReady || selection.length === 0)
             return;
         const paths = selectedPaths();
-        submitJob({
-            "op": "trash",
-            "sources": paths
-        }, {
-            "removeSelection": paths
-        });
+        confirmDeletion("trash", paths);
     }
     function validName(name) {
         const value = String(name || "").trim();

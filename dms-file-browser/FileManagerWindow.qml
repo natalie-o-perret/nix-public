@@ -281,17 +281,17 @@ FloatingWindow {
         const title = op === "delete" ? "Delete Permanently?" : "Move to Trash?";
         const confirmText = op === "delete" ? "Delete" : "Move to Trash";
         const damageNote = op === "delete" ? "Deleted files cannot be recovered." : "Items can be restored from the Trash until it is emptied.";
-        const sections = [preview.summary];
+        const lines = [preview.summary];
         if (preview.size && preview.size !== "0 B")
-            sections.push("Total size: " + preview.size);
-        sections.push(damageNote);
-        if (preview.names.length > 0)
-            sections.push(preview.names.join("\n") + (preview.remainder > 0 ? "\n… and " + preview.remainder + " more" : ""));
-        confirmModal.showWithOptions({
+            lines.push("Total size: " + preview.size);
+        lines.push(damageNote);
+        const namesText = preview.names.length > 0 ? preview.names.join("\n") + (preview.remainder > 0 ? "\n… and " + preview.remainder + " more" : "") : "";
+        deletionConfirmPopup.show({
             "title": title,
-            "message": sections.join("\n\n"),
+            "message": lines.join("\n\n"),
+            "names": namesText,
             "confirmText": confirmText,
-            "confirmColor": Theme.error,
+            "cancelText": "Cancel",
             "onConfirm": () => runDeletion(op, paths)
         });
     }
@@ -2930,8 +2930,105 @@ FloatingWindow {
     InputModal {
         id: inputModal
     }
-    ConfirmModal {
-        id: confirmModal
+    Popup {
+        id: deletionConfirmPopup
+
+        property string popupCancelText: "Cancel"
+        property string popupConfirmText: "Delete"
+        property string popupMessage: ""
+        property string popupNames: ""
+        property var popupOnConfirm: function () {}
+        property string popupTitle: ""
+
+        function show(options) {
+            popupTitle = options.title || "Confirm";
+            popupMessage = options.message || "";
+            popupNames = options.names || "";
+            popupConfirmText = options.confirmText || "Confirm";
+            popupCancelText = options.cancelText || "Cancel";
+            popupOnConfirm = options.onConfirm || (() => {});
+            open();
+        }
+
+        closePolicy: Popup.CloseOnEscape
+        dim: true
+        focus: true
+        modal: true
+        padding: 0
+        parent: Overlay.overlay
+        x: Math.max(16, (parent.width - width) / 2)
+        y: Math.max(16, (parent.height - height) / 2)
+
+        background: Rectangle {
+            color: "transparent"
+        }
+        contentItem: Rectangle {
+            Accessible.name: deletionConfirmPopup.popupTitle
+            Accessible.role: Accessible.Dialog
+            border.color: Theme.outlineMedium
+            border.width: 1
+            color: Theme.floatingSurface
+            radius: Theme.cornerRadius
+
+            Column {
+                id: confirmColumn
+
+                anchors.fill: parent
+                anchors.margins: Theme.spacingL
+                spacing: Theme.spacingM
+
+                StyledText {
+                    color: Theme.surfaceText
+                    font.pixelSize: Theme.fontSizeLarge
+                    font.weight: Font.Medium
+                    horizontalAlignment: Text.AlignHCenter
+                    text: deletionConfirmPopup.popupTitle
+                    width: parent.width
+                }
+                StyledText {
+                    color: Theme.surfaceText
+                    font.pixelSize: Theme.fontSizeSmall
+                    horizontalAlignment: Text.AlignLeft
+                    text: deletionConfirmPopup.popupMessage
+                    width: parent.width
+                    wrapMode: Text.WrapAnywhere
+                }
+                StyledText {
+                    color: Theme.surfaceTextMedium
+                    elide: Text.ElideRight
+                    font.family: "monospace"
+                    font.pixelSize: Theme.fontSizeSmall
+                    horizontalAlignment: Text.AlignLeft
+                    maximumLineCount: 6
+                    text: deletionConfirmPopup.popupNames
+                    visible: deletionConfirmPopup.popupNames.length > 0
+                    width: parent.width
+                    wrapMode: Text.WrapAnywhere
+                }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Theme.spacingM
+
+                    DankButton {
+                        buttonHeight: 38
+                        text: deletionConfirmPopup.popupCancelText
+
+                        onClicked: deletionConfirmPopup.close()
+                    }
+                    DankButton {
+                        backgroundColor: Theme.error
+                        buttonHeight: 38
+                        text: deletionConfirmPopup.popupConfirmText
+                        textColor: Theme.primaryText
+
+                        onClicked: {
+                            deletionConfirmPopup.close();
+                            Qt.callLater(deletionConfirmPopup.popupOnConfirm);
+                        }
+                    }
+                }
+            }
+        }
     }
     FloatingWindowControls {
         id: windowControls

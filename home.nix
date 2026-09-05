@@ -520,15 +520,22 @@ in
     audacity
     btop
     cargo
+    clojure
     clippy
     discord
+    dotnet-sdk_10
+    earthbuild
+    fd
     fira-code
+    gcc
     gh
     gimp
     go
     cheese
     helium
+    helix
     inter
+    jdk
     jetbrains-toolbox
     k0s
     k3s
@@ -536,6 +543,9 @@ in
     kindPodman
     logseq
     lsd
+    neovim
+    ocaml
+    odin
     opentofu
     oxkerPodman
     papirusPink
@@ -544,6 +554,7 @@ in
     podman-compose
     python3
     qbittorrent
+    ripgrep
     ristretto
     rustc
     rustfmt
@@ -897,6 +908,15 @@ in
       }
     '';
     "niri/config.kdl".source = niriConfig;
+    "nvim" = {
+      source = pkgs.fetchFromGitHub {
+        owner = "LazyVim";
+        repo = "starter";
+        rev = "803bc181d7c0d6d5eeba9274d9be49b287294d99";
+        hash = "sha256-QrpnlDD4r1X4C8PqBhQ+S3ar5C+qDrU1Jm/lPqyMIFM=";
+      };
+      recursive = true;
+    };
     "qt5ct/qt5ct.conf".force = true;
     "qt6ct/qt6ct.conf".force = true;
     "zen/smo9aotg.Default Profile/chrome/userChrome.css" = {

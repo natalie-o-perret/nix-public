@@ -519,6 +519,7 @@ in
   home.packages = with pkgs; [
     audacity
     btop
+    bun
     cargo
     clojure
     clippy
@@ -544,6 +545,7 @@ in
     logseq
     lsd
     neovim
+    nodejs
     ocaml
     odin
     opentofu

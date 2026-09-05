@@ -535,6 +535,7 @@ in
     cheese
     helium
     helix
+    herdr
     inter
     jdk
     jetbrains-toolbox

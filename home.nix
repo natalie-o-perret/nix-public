@@ -512,7 +512,6 @@ let
 in
 {
   home.stateVersion = "26.05";
-  home.sessionVariables.CARAPACE_BRIDGES = "bash";
   home.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   systemd.user.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   xdg.enable = true;
@@ -644,6 +643,7 @@ in
   programs.bash.enable = true;
   programs.nushell = {
     enable = true;
+    environmentVariables.CARAPACE_BRIDGES = "bash";
     settings.show_banner = false;
   };
 

@@ -40,6 +40,11 @@ let
 
   qt5MenuStyle = pkgs.writeText "qt5-menu.qss" "QMenuBar, QMenu { font-size: 14px; }\n";
 
+  leinBashCompletion = pkgs.fetchurl {
+    url = "https://raw.githubusercontent.com/technomancy/leiningen/${pkgs.leiningen.version}/bash_completion.bash";
+    hash = "sha256-FQEeefkerH2LV1hYKqJLzexu6NHSjIDbP57Pb2IgqKM=";
+  };
+
   logseq =
     # ponytail: Logseq 0.10.15 fails with Electron 43; retry the current Electron after upgrading Logseq.
     (pkgs.logseq.override { electron_39 = pkgs.electron_41; }).overrideAttrs (old: {
@@ -507,6 +512,7 @@ let
 in
 {
   home.stateVersion = "26.05";
+  home.sessionVariables.CARAPACE_BRIDGES = "bash";
   home.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   systemd.user.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   xdg.enable = true;
@@ -543,6 +549,7 @@ in
     k3s
     karere
     kindPodman
+    leiningen
     logseq
     lsd
     neovim
@@ -900,7 +907,25 @@ in
     ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
   '';
 
+  xdg.dataFile = {
+    "bash-completion/completions/clj".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/clojure".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/earth".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/earthly".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/herdr".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/lein".source = leinBashCompletion;
+    "bash-completion/completions/npx".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/ocaml".source = ./carapace-bash-completions.bash;
+    "bash-completion/completions/odin".source = ./carapace-bash-completions.bash;
+  };
+
   xdg.configFile = {
+    "carapace/bridge/bash/.bashrc" = {
+      force = true;
+      text = ''
+        source ${pkgs.bash-completion}/share/bash-completion/bash_completion
+      '';
+    };
     "carapace/specs/lsd.yaml".source = ./carapace-lsd.yaml;
     "gtk-3.0/bookmarks".force = true;
     "gtk-3.0/settings.ini".force = true;

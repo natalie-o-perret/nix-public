@@ -1,0 +1,92 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: lein
+description: Work with Clojure projects using Leiningen
+persistentflags:
+  -o: Run tasks offline
+  -U: Force snapshot updates before running a task
+  -h, --help: Show help for a task
+  -v, --version: Print the Leiningen version
+commands:
+  - name: change
+    description: Rewrite project.clj by applying a function at a key path
+  - name: check
+    description: Check syntax and warn on reflection
+  - name: classpath
+    description: Print or write the project classpath
+  - name: clean
+    description: Remove files from the project's clean targets
+  - name: compile
+    description: Compile Clojure source into class files
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([lein, compile])"]
+  - name: deploy
+    description: Deploy a jar and pom to a remote repository
+  - name: deps
+    description: Download and examine dependencies
+  - name: do
+    description: Run several tasks in succession
+  - name: help
+    description: Show tasks or detailed help for a task
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([lein, help])"]
+  - name: install
+    description: Install a jar and pom in the local repository
+  - name: jar
+    description: Package the project's files into a jar
+  - name: javac
+    description: Compile Java source files
+  - name: new
+    description: Generate a project from a template
+    flags:
+      --force: Write into an existing directory
+      --snapshot: Use an unreleased template
+      --template-version=: Use a specific template version
+      --to-dir=: Write the project to a different directory
+    completion:
+      flag:
+        to-dir: ["$directories"]
+      positional:
+        - ["app\tApplication project", "default\tLibrary project", "plugin\tLeiningen plugin project", "template\tLeiningen template project"]
+  - name: plugin
+    description: Deprecated task for managing plugins
+  - name: pom
+    description: Write a pom.xml for Maven interoperability
+  - name: release
+    description: Perform release tasks
+  - name: repl
+    description: Start a project or standalone REPL
+  - name: retest
+    description: Rerun test namespaces that failed last time
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([lein, retest])"]
+  - name: run
+    description: Run the project's main function
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([lein, run])"]
+  - name: search
+    description: Search Central and Clojars for artifacts
+  - name: show-profiles
+    description: List profiles or show one profile
+  - name: test
+    description: Run the project's tests
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([lein, test])"]
+  - name: trampoline
+    description: Run a task without nesting its JVM
+  - name: uberjar
+    description: Package the project and dependencies into a jar
+  - name: update-in
+    description: Transform the project map
+  - name: upgrade
+    description: Upgrade Leiningen
+  - name: vcs
+    description: Interact with version control
+  - name: version
+    description: Print Leiningen and JVM versions
+  - name: with-profile
+    description: Run a task with selected profiles

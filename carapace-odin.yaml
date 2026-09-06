@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: odin
+description: Manage Odin source code
+commands:
+  - name: build
+    description: Compile a package as an executable
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, build])"]
+  - name: run
+    description: Build and run a package
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, run])"]
+  - name: bundle
+    description: Bundle a directory for a platform
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, bundle])"]
+  - name: check
+    description: Parse and type-check a package
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, check])"]
+  - name: strip-semicolon
+    description: Remove unneeded semicolons from a package
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, strip-semicolon])"]
+  - name: test
+    description: Build and run procedures marked @(test)
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, test])"]
+  - name: doc
+    description: Generate package documentation
+    parsing: disabled
+    completion:
+      positionalany: ["$carapace.bridge.Bash([odin, doc])"]
+  - name: version
+    description: Print the Odin version
+  - name: report
+    description: Print information for a bug report
+  - name: root
+    description: Print the root path for builtin collections
+  - name: help
+    description: Show help for a command
+    completion:
+      positional:
+        - [build, run, bundle, check, strip-semicolon, test, doc, version, report, root]

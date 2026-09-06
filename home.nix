@@ -924,9 +924,14 @@ in
       force = true;
       text = ''
         source ${pkgs.bash-completion}/share/bash-completion/bash_completion
+        source ${./carapace-bash-completions.bash}
+        source ${leinBashCompletion}
       '';
     };
+    "carapace/specs/clj.yaml".source = ./carapace-clj.yaml;
+    "carapace/specs/lein.yaml".source = ./carapace-lein.yaml;
     "carapace/specs/lsd.yaml".source = ./carapace-lsd.yaml;
+    "carapace/specs/odin.yaml".source = ./carapace-odin.yaml;
     "gtk-3.0/bookmarks".force = true;
     "gtk-3.0/settings.ini".force = true;
     "gtk-4.0/settings.ini".force = true;

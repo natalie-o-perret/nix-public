@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=https://carapace.sh/schemas/command.json
+name: clj
+description: Run Clojure programs with deps.edn
+flags:
+  -A?: Use concatenated aliases to modify the classpath
+  -X?: Use aliases to invoke a function
+  -T?: Invoke a tool by name or aliases
+  -M?: Use aliases to invoke clojure.main
+  -P: Download dependencies and cache the classpath without executing
+  -J=: Pass an option to the JVM
+  -Sdeps=: Use inline deps data or a deps.edn file
+  -Spath: Print the computed classpath
+  -Stree: Print the dependency tree
+  -Scp=: Use this classpath without computing one
+  -Srepro: Ignore the user deps.edn file
+  -Sforce: Force classpath recomputation
+  -Sverbose: Print path information
+  -Sthreads=: Set the number of download threads
+  -Strace: Write a trace.edn file for dependency expansion
+  --version: Print the version to stdout and exit
+  -version: Print the version to stderr and exit
+  -i, --init=: Load a file or resource
+  -e, --eval=: Evaluate expressions
+  --report=: Set the uncaught exception target
+  -m, --main=: Call a namespace's -main function
+  -r, --repl: Run a REPL
+  -h, --help: Print help and exit
+completion:
+  flag:
+    Sdeps: ["$files([.edn])"]
+    i: ["$files"]
+    report: [file, stderr, none]
+  positional:
+    - ["-A\tStart a REPL using aliases", "-X\tInvoke a function using aliases", "-T\tInvoke a tool", "-M\tRun clojure.main using aliases", "-P\tPrepare dependencies without executing", "$files"]
+  positionalany: ["$files"]

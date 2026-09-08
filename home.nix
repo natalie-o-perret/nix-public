@@ -290,15 +290,17 @@ let
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
+      clipboard_entry="$out/share/quickshell/dms/Modals/Clipboard/ClipboardEntry.qml"
       gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
       shell="$out/share/quickshell/dms/DMSShell.qml"
+      notification_button="$out/share/quickshell/dms/Modules/DankBar/Widgets/NotificationCenterButton.qml"
       tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
       file_content="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserContent.qml"
       grid_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserGridDelegate.qml"
       list_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserListDelegate.qml"
       caching_image="$out/share/quickshell/dms/Widgets/CachingImage.qml"
-      chmod u+w "$qml" "$gtk" "$qt" "$shell" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
+      chmod u+w "$qml" "$clipboard_entry" "$gtk" "$qt" "$shell" "$notification_button" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -307,11 +309,16 @@ let
         --replace-fail 'readonly property int itemHeight: 72' 'readonly property int itemHeight: 64' \
         --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88' \
         --replace-fail 'readonly property int keyboardHintsHeight: 80' 'readonly property int keyboardHintsHeight: 64'
+      substituteInPlace "$clipboard_entry" \
+        --replace-fail $'font.weight: Font.Medium\n                width: parent.width' $'font.weight: Font.Medium\n                maximumLineCount: 1\n                width: parent.width' \
+        --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 : 1' 'maximumLineCount: 1'
       # Use DMS's native qtct palette. The KDE palette requires qt5ct-kde, which nixpkgs no longer ships.
       substituteInPlace "$qt" \
         --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
       substituteInPlace "$shell" \
         --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
+      substituteInPlace "$notification_button" \
+        --replace-fail $'acceptedButtons: Qt.MiddleButton\n        onPressed:' $'acceptedButtons: Qt.MiddleButton\n        cursorShape: Qt.PointingHandCursor\n        onPressed:'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
       substituteInPlace "$file_content" \
@@ -440,6 +447,7 @@ let
           .innerPadding = 11
           | .fontScale = ${toString desktopScale}
           | .iconScale = 1.1
+          | .centerWidgets |= map(select((if type == "string" then . else .id end) as $id | $id != "music" and $id != "weather"))
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))
     ' "$settings" > "$tmp"

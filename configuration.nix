@@ -57,6 +57,10 @@ in
   networking.hostName = "nixos";
   networking.networkmanager.enable = true;
   hardware.bluetooth.enable = true;
+  services.udev.extraRules = ''
+    SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="19f5", ATTR{idProduct}=="1028", GROUP="users", MODE="0660"
+    SUBSYSTEM=="hidraw", ATTRS{idVendor}=="19f5", ATTRS{idProduct}=="1028", GROUP="users", MODE="0660"
+  '';
 
   time.timeZone = "Europe/Paris";
 

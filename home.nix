@@ -867,6 +867,10 @@ in
       enable = true;
       src = dmsFilesPlugin;
     };
+    plugins.monitorSigils = {
+      enable = true;
+      src = ./monitor-sigils;
+    };
     quickshell.package = pkgs.quickshell;
     systemd = {
       enable = true;
@@ -880,7 +884,10 @@ in
   };
 
   systemd.user.services.dms = {
-    Unit.X-Restart-Triggers = [ dmsFilesPlugin ];
+    Unit.X-Restart-Triggers = [
+      dmsFilesPlugin
+      ./monitor-sigils
+    ];
     Service = {
       Environment = [
         "XCURSOR_THEME=Bibata-Modern-Ice"

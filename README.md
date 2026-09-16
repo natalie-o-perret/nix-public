@@ -8,6 +8,7 @@ Reusable NixOS configuration for a Niri desktop powered by DankMaterialShell.
 - `configuration.nix` defines the portable NixOS base: user, boot, networking, audio, printing, Podman, Niri and system services used by DMS.
 - `home.nix` defines the user environment: applications, fonts, themes, browser policies, DMS integration and Home Manager settings.
 - `niri.kdl` contains the compositor layout, bindings and environment.
+- `monitor-sigils/` provides DMS animations for monitor and directional focus changes.
 
 Hardware-specific files are intentionally not included. Import `nixosModules.default` from a host flake alongside that host's generated `hardware-configuration.nix`.
 

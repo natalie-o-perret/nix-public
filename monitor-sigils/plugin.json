@@ -1,0 +1,13 @@
+{
+  "$schema": "https://danklinux.com/schemas/plugin.json",
+  "id": "monitorSigils",
+  "name": "Monitor Sigils",
+  "description": "Shows a rose portal on monitor focus and magical flames along movement edges",
+  "version": "1.2.0",
+  "author": "Natalie Perret",
+  "type": "daemon",
+  "capabilities": ["daemon"],
+  "component": "./MonitorSigils.qml",
+  "icon": "local_florist",
+  "requires_dms": ">=1.6.0"
+}

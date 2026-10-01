@@ -552,6 +552,7 @@ in
     inter
     jdk
     jetbrains-toolbox
+    jwt-cli
     k0s
     k3s
     karere

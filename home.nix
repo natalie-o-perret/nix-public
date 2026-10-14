@@ -27,15 +27,10 @@ let
     color = "pink";
   };
 
-  desktopScale = 1.25;
+  outputScale = 1.7;
   desktopFont = {
     name = "Inter Variable";
-    size = builtins.ceil (10 * desktopScale);
-  };
-
-  browserScale = {
-    vivaldi = 1.25;
-    helium = 1.2;
+    size = 10;
   };
 
   qt5MenuStyle = pkgs.writeText "qt5-menu.qss" "QMenuBar, QMenu { font-size: 14px; }\n";
@@ -115,8 +110,7 @@ let
       nativeBuildInputs = [ pkgs.makeWrapper ];
       postBuild = ''
         rm "$out/bin/vlc"
-        makeWrapper ${vlc}/bin/vlc "$out/bin/vlc" \
-          --set QT_SCALE_FACTOR 1.6
+        makeWrapper ${vlc}/bin/vlc "$out/bin/vlc"
 
         desktop="$out/share/applications/vlc.desktop"
         rm "$desktop"
@@ -133,7 +127,6 @@ let
     (pkgs.vivaldi.override {
       proprietaryCodecs = true;
       enableWidevine = true;
-      commandLineArgs = "--force-device-scale-factor=${toString browserScale.vivaldi}";
     }).overrideAttrs
       (old: {
         postFixup = (old.postFixup or "") + ''
@@ -291,16 +284,17 @@ let
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
       clipboard_entry="$out/share/quickshell/dms/Modals/Clipboard/ClipboardEntry.qml"
+      theme="$out/share/quickshell/dms/Common/Theme.qml"
       gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
+      qt5ct_template="$out/share/quickshell/dms/matugen/configs/qt5ct.toml"
       shell="$out/share/quickshell/dms/DMSShell.qml"
-      notification_button="$out/share/quickshell/dms/Modules/DankBar/Widgets/NotificationCenterButton.qml"
       tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      file_content="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserContent.qml"
-      grid_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserGridDelegate.qml"
-      list_delegate="$out/share/quickshell/dms/Modals/FileBrowser/FileBrowserListDelegate.qml"
-      caching_image="$out/share/quickshell/dms/Widgets/CachingImage.qml"
-      chmod u+w "$qml" "$clipboard_entry" "$gtk" "$qt" "$shell" "$notification_button" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
+      file_content="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserContent.qml"
+      grid_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserGridDelegate.qml"
+      list_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserListDelegate.qml"
+      caching_image="$out/share/quickshell/dms/DankCommon/Widgets/CachingImage.qml"
+      chmod u+w "$qml" "$clipboard_entry" "$theme" "$gtk" "$qt" "$qt5ct_template" "$shell" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
@@ -312,20 +306,28 @@ let
       substituteInPlace "$clipboard_entry" \
         --replace-fail $'font.weight: Font.Medium\n                width: parent.width' $'font.weight: Font.Medium\n                maximumLineCount: 1\n                width: parent.width' \
         --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 : 1' 'maximumLineCount: 1'
+      substituteInPlace "$theme" \
+        --replace-fail 'const args = ["dms", "matugen", "queue",' \
+          "const args = [\"$out/bin/dms\", \"matugen\", \"queue\","
+      # Keep the Qt5 palette in qt5ct's watched directory so running applications reload it.
+      substituteInPlace "$qt5ct_template" \
+        --replace-fail "output_path = 'CONFIG_DIR/qt5ct/colors/matugen.conf'" \
+          "output_path = 'CONFIG_DIR/qt5ct/matugen.conf'"
+      cat >> "$qt5ct_template" <<EOF
+      post_hook = '${pkgs.coreutils}/bin/touch ${config.xdg.configHome}/qt5ct'
+      EOF
       # Use DMS's native qtct palette. The KDE palette requires qt5ct-kde, which nixpkgs no longer ships.
       substituteInPlace "$qt" \
-        --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/colors/matugen.conf"'
+        --replace-fail 'color_scheme_path="$(dirname "$config_dir")/.local/share/color-schemes/DankMatugen.colors"' 'color_scheme_path="$config_dir/qt5ct/matugen.conf"'
       substituteInPlace "$shell" \
         --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
-      substituteInPlace "$notification_button" \
-        --replace-fail $'acceptedButtons: Qt.MiddleButton\n        onPressed:' $'acceptedButtons: Qt.MiddleButton\n        cursorShape: Qt.PointingHandCursor\n        onPressed:'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
       substituteInPlace "$file_content" \
         --replace-fail 'folder: encodeFileUrl(currentPath || homeDir)' 'folder: encodeFileUrl(currentPath || getLastPath())' \
         --replace-fail 'model: folderModel' 'model: visible ? folderModel : null' \
         --replace-fail 'cacheBuffer: 260' $'cacheBuffer: 260\n                            reuseItems: true' \
-        --replace-fail 'spacing: Theme.spacingXXS' $'spacing: Theme.spacingXXS\n                            reuseItems: true\n                            add: null\n                            displaced: null\n                            move: null' \
+        --replace-fail 'spacing: Style.spacingXXS' $'spacing: Style.spacingXXS\n                            reuseItems: true\n                            add: null\n                            displaced: null\n                            move: null' \
         --replace-fail 'if (keyboardNavigationActive && currentIndex >= 0)' 'if (visible && keyboardNavigationActive && currentIndex >= 0)' \
         --replace-fail $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive' $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive\n                                generateVideoThumbnails: false'
       substituteInPlace "$grid_delegate" \
@@ -386,8 +388,14 @@ let
     text = ''
       shell_dir=${compactDms}/share/quickshell/dms
       for _ in {1..100}; do
-        if [[ -f "$HOME/.config/gtk-3.0/dank-colors.css" && -f "$HOME/.local/share/color-schemes/DankMatugen.colors" ]]; then
-          "$shell_dir/scripts/gtk.sh" "$HOME/.config" false "$shell_dir"
+        if [[ -f "$HOME/.config/gtk-3.0/dank-colors.css" && -f "$HOME/.config/qt5ct/matugen.conf" ]]; then
+          is_light=false
+          session="$HOME/.local/state/DankMaterialShell/session.json"
+          if [[ -f "$session" && "$(${pkgs.jq}/bin/jq -r '.isLightMode // false' "$session")" == "true" ]]; then
+            is_light=true
+          fi
+          "$shell_dir/scripts/gtk.sh" "$HOME/.config" apply "$is_light" "$shell_dir"
+          "$shell_dir/scripts/gtk.sh" "$HOME/.config" patch "$is_light" "$shell_dir"
           "$shell_dir/scripts/qt.sh" "$HOME/.config"
           exit 0
         fi
@@ -406,6 +414,8 @@ let
   };
 
   qtAppearance = {
+    color_scheme_path = "${config.xdg.configHome}/qt5ct/matugen.conf";
+    custom_palette = true;
     icon_theme = "Papirus-Dark";
     standard_dialogs = "xdgdesktopportal";
     style = "Fusion";
@@ -416,17 +426,28 @@ let
   # DMS has no declarative settings option; enforce desktop integration before it starts.
   dmsDesktopSettings = pkgs.writeShellScript "dms-desktop-settings" ''
     set -eu
-    settings="$HOME/.config/DankMaterialShell/settings.json"
-    [[ -f "$settings" ]] || exit 0
+    settings_dir="$HOME/.config/DankMaterialShell"
+    settings="$settings_dir/settings.json"
+    ${pkgs.coreutils}/bin/mkdir -p "$settings_dir"
+    if [[ ! -f "$settings" ]]; then
+      printf '{}\n' > "$settings"
+      ${pkgs.coreutils}/bin/chmod 600 "$settings"
+    fi
     tmp="$(${pkgs.coreutils}/bin/mktemp)"
     trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
     ${pkgs.jq}/bin/jq '
       .iconThemeDark = "Papirus-Dark"
       | .iconThemeLight = "Papirus-Dark"
       | .iconThemePerMode = false
-      | .lastAppliedIconTheme = "Papirus-Dark"
       | .fontFamily = "${desktopFont.name}"
-      | .fontScale = ${toString desktopScale}
+      | .fontScale = 1.0
+      | .firstDayOfWeek = 1
+      | .showWeekNumber = true
+      | .showSeconds = true
+      | .clockFormat = "12h"
+      | .padHours12Hour = true
+      | .weatherEnabled = true
+      | .useAutoLocation = true
       | .controlCenterShowBluetoothIcon = true
       | .cursorSettings.theme = "Bibata-Modern-Ice"
       | .cursorSettings.size = 24
@@ -443,10 +464,10 @@ let
       | .syncModeWithPortal = true
       | .showBatteryPercent = true
       | .showBatteryPercentOnlyOnBattery = false
-      | ((.barConfigs[] | select(.id == "default")) |= (
+      | ((.barConfigs[]? | select(.id == "default")) |= (
           .innerPadding = 11
-          | .fontScale = ${toString desktopScale}
-          | .iconScale = 1.1
+          | .fontScale = 1.0
+          | .iconScale = 1.0
           | .centerWidgets |= map(select((if type == "string" then . else .id end) as $id | $id != "music" and $id != "weather"))
           | .rightWidgets |= map(select((if type == "string" then . else .id end) != "exampleEmojiPlugin"))
         ))
@@ -512,7 +533,7 @@ let
       ];
       extraInstallCommands = ''
         wrapProgram "$out/bin/helium" \
-          --add-flags "--force-device-scale-factor=${toString browserScale.helium} --top-chrome-touch-ui=disabled --gtk-version=3"
+          --add-flags "--top-chrome-touch-ui=disabled --gtk-version=3"
         install -Dm444 ${contents}/helium.desktop $out/share/applications/helium.desktop
         cp -r ${contents}/usr/share/icons $out/share
       '';
@@ -526,6 +547,9 @@ in
 
   systemd.user.tmpfiles.rules = [
     "d %h/Personal 0755 - - -"
+    "d %h/Personal/Notes 0755 - - -"
+    "d %h/Personal/Notes/assets 0755 - - -"
+    "d %h/Personal/Notes/pages 0755 - - -"
     "d %h/Personal/Repositories 0755 - - -"
   ];
 
@@ -545,7 +569,7 @@ in
     gh
     gimp
     go
-    cheese
+    snapshot
     helium
     helix
     herdr
@@ -606,7 +630,6 @@ in
 
   gtk = {
     enable = true;
-    colorScheme = "dark";
     gtk2.enable = false;
     gtk3.bookmarks = [
       "file://${config.home.homeDirectory}/Downloads"
@@ -617,16 +640,10 @@ in
       inherit (desktopFont) name size;
       package = pkgs.inter;
     };
-    theme = {
-      name = "adw-gtk3-dark";
-      package = pkgs.adw-gtk3;
-    };
     iconTheme = {
       name = "Papirus-Dark";
       package = papirusPink;
     };
-    gtk3.extraConfig.gtk-xft-dpi = 147456;
-    gtk4.extraConfig.gtk-xft-dpi = 147456;
   };
 
   qt = {
@@ -646,7 +663,10 @@ in
   xfconf.settings.thunar = {
     "last-location-bar" = "ThunarLocationButtons";
     "misc-single-click" = true;
-    "misc-single-click-timeout" = 1;
+    "misc-single-click-timeout" = {
+      type = "uint";
+      value = 0;
+    };
   };
 
   programs.bash.enable = true;
@@ -781,6 +801,10 @@ in
         install_url = "https://addons.mozilla.org/firefox/downloads/latest/auth-helper/latest.xpi";
         installation_mode = "force_installed";
       };
+      ExtensionSettings."fr-dicollecte@dictionaries.addons.mozilla.org" = {
+        install_url = "https://addons.mozilla.org/firefox/downloads/latest/dictionnaire-francais1/latest.xpi";
+        installation_mode = "force_installed";
+      };
       Homepage = {
         URL = "about:blank";
         Locked = true;
@@ -796,6 +820,10 @@ in
           Value = true;
           Status = "locked";
         };
+        "spellchecker.dictionary" = {
+          Value = "en-US,fr";
+          Status = "locked";
+        };
         "toolkit.legacyUserProfileCustomizations.stylesheets" = {
           Value = true;
           Status = "locked";
@@ -809,9 +837,9 @@ in
     defaultEditor = true;
     userSettings = {
       ui_font_family = desktopFont.name;
-      ui_font_size = builtins.ceil (16 * desktopScale);
+      ui_font_size = 16;
       buffer_font_family = "Fira Code";
-      buffer_font_size = builtins.ceil (15 * desktopScale);
+      buffer_font_size = 15;
       theme = {
         mode = "system";
         light = "DankShell Light";
@@ -858,7 +886,6 @@ in
   programs.dank-material-shell = {
     enable = true;
     package = compactDms;
-    dgop.package = pkgs.dgop;
     managePluginSettings = true;
     plugins.emojiLauncher = {
       enable = true;
@@ -887,7 +914,7 @@ in
   systemd.user.services.dms = {
     Unit.X-Restart-Triggers = [
       dmsFilesPlugin
-      ./monitor-sigils
+      "${./monitor-sigils}"
     ];
     Service = {
       Environment = [
@@ -908,10 +935,6 @@ in
     settings="$HOME/.config/audacity/audacity.cfg"
     run ${pkgs.coreutils}/bin/mkdir -p "$(dirname "$settings")"
     run ${pkgs.crudini}/bin/crudini --set "$settings" GUI Theme dark
-  '';
-
-  home.activation.dmsSystemAppTheming = lib.hm.dag.entryAfter [ "reloadSystemd" ] ''
-    run ${dmsSystemAppTheming}/bin/dms-system-app-theming
   '';
 
   home.activation.signalSystemTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -953,7 +976,7 @@ in
     "gtk-4.0/settings.ini".force = true;
     "kanshi/config".text = ''
       profile {
-        ...output "*" scale ${toString desktopScale}
+        ...output "*" scale ${toString outputScale}
       }
     '';
     "niri/config.kdl".source = niriConfig;

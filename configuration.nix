@@ -98,6 +98,7 @@ in
 
   # DMS uses these system services from the user session.
   services.accounts-daemon.enable = true;
+  services.geoclue2.enable = true;
   services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 

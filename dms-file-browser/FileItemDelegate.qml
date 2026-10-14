@@ -17,6 +17,7 @@ Rectangle {
     required property var fileSize
     required property url fileUrl
     property bool gridMode: false
+    property bool selected: false
     readonly property bool imageFile: !fileIsDir && ["avif", "bmp", "gif", "heif", "ico", "jpeg", "jpg", "jxl", "png", "svg", "webp"].includes(suffix)
     required property int index
     readonly property var itemData: ({
@@ -27,6 +28,7 @@ Rectangle {
             "modified": fileModified,
             "suffix": suffix
         })
+    property int sizeColumnWidth: 84
     readonly property string suffix: {
         const dot = fileName.lastIndexOf(".");
         return dot > 0 ? fileName.slice(dot + 1).toLowerCase() : "";
@@ -119,7 +121,7 @@ Rectangle {
     radius: Theme.cornerRadius
 
     Accessible.onPressAction: {
-        root.clicked(root.index, Qt.NoModifier);
+        root.clicked(root.index, root.itemData, Qt.NoModifier);
         root.doubleClicked(root.index);
     }
 

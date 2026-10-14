@@ -8,7 +8,7 @@
     };
 
     dms = {
-      url = "github:AvengeMedia/DankMaterialShell/stable";
+      url = "github:AvengeMedia/DankMaterialShell/v1.6.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -64,6 +64,10 @@
         NewTabPageLocation = "about:blank";
         RestoreOnStartup = 4;
         RestoreOnStartupURLs = [ "about:blank" ];
+        SpellcheckLanguage = [
+          "en-US"
+          "fr"
+        ];
       };
     in
     {
@@ -77,6 +81,8 @@
           home-manager.nixosModules.home-manager
           dank-greeter.nixosModules.default
         ];
+
+        nixpkgs.overlays = [ (final: _: { dms-shell = dms.lib.mkDmsShell final; }) ];
 
         environment.etc."vivaldi/policies/managed/bookmarks.json".text = builtins.toJSON {
           ManagedBookmarks = [

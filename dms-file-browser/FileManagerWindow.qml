@@ -1,5 +1,6 @@
 import Qt.labs.folderlistmodel
 import QtCore
+import QtQml.Models
 import QtQuick
 import QtQuick.Controls
 import Quickshell
@@ -519,7 +520,6 @@ FloatingWindow {
             {
                 const map = pendingProgress;
                 map[id] = {
-                    "status": "running",
                     "itemsDone": Number(event.itemsDone || 0),
                     "itemsTotal": Number(event.itemsTotal || 1),
                     "bytesDone": Number(event.bytesDone || 0),
@@ -616,10 +616,6 @@ FloatingWindow {
                 return;
             case Qt.Key_L:
                 showPathEditor();
-                event.accepted = true;
-                return;
-            case Qt.Key_F:
-                showSearch();
                 event.accepted = true;
                 return;
             case Qt.Key_H:
@@ -1543,7 +1539,10 @@ FloatingWindow {
     visible: false
 
     Component.onCompleted: loadSettings()
-    onAppliedSearchTextChanged: clearSelection()
+    onAppliedSearchTextChanged: {
+        folderModel.invalidate();
+        clearSelection();
+    }
     onClosed: hide()
     onCurrentPathChanged: scheduleSettingsSave()
     onSearchTextChanged: searchDebounce.restart()
@@ -1570,6 +1569,11 @@ FloatingWindow {
         interval: 80
 
         onTriggered: root.appliedSearchText = root.searchText.trim()
+    }
+    Shortcut {
+        sequences: [StandardKey.Find]
+
+        onActivated: root.showSearch()
     }
     Timer {
         id: statusClearTimer
@@ -1667,11 +1671,11 @@ FloatingWindow {
         onStarted: root.backendReady = false
     }
     FolderListModel {
-        id: folderModel
+        id: sourceFolderModel
 
         caseSensitive: false
         folder: root.modelFolder
-        nameFilters: root.appliedSearchText ? ["*" + root.appliedSearchText + "*"] : ["*"]
+        nameFilters: ["*"]
         showDirs: true
         showDirsFirst: true
         showDotAndDotDot: false
@@ -1697,6 +1701,44 @@ FloatingWindow {
             if (status === FolderListModel.Ready)
                 root.syncCurrentIndex();
         }
+    }
+    SortFilterProxyModel {
+        id: folderModel
+
+        property int count: 0
+        readonly property int status: sourceFolderModel.status
+
+        function get(index, property) {
+            const sourceIndex = mapToSource(folderModel.index(index, 0));
+            return sourceIndex.valid ? sourceFolderModel.get(sourceIndex.row, property) : undefined;
+        }
+        function indexOf(file) {
+            const sourceRow = sourceFolderModel.indexOf(file);
+            if (sourceRow < 0)
+                return -1;
+            const proxyIndex = mapFromSource(sourceFolderModel.index(sourceRow, 0));
+            return proxyIndex.valid ? proxyIndex.row : -1;
+        }
+        function syncCount() {
+            count = rowCount();
+        }
+
+        filters: FunctionFilter {
+
+            function filter(data: RoleData): bool {
+                const query = root.appliedSearchText.toLowerCase();
+                return !query || data.fileName.toLowerCase().includes(query);
+            }
+        }
+        model: sourceFolderModel
+
+        Component.onCompleted: syncCount()
+        onModelReset: syncCount()
+        onRowsInserted: syncCount()
+        onRowsRemoved: syncCount()
+    }
+    component RoleData: QtObject {
+        property string fileName
     }
     FocusScope {
         id: contentRoot
@@ -2489,9 +2531,9 @@ FloatingWindow {
                             root.currentIndex = bestCurrent;
                         }
                         function scheduleHitTest() {
-                            if (!dragging || !active)
+                            if (!dragging || !active || rubberBandHitTestTimer.running)
                                 return;
-                            rubberBandHitTestTimer.restart();
+                            rubberBandHitTestTimer.start();
                         }
 
                         border.color: Theme.primary

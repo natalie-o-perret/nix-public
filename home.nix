@@ -541,6 +541,10 @@ let
 in
 {
   home.stateVersion = "26.05";
+  home.file."Pictures/Wallpapers/Crimson Moon Gothic Vampire Landscape.png" = {
+    force = true;
+    source = ./wallpapers/crimson-moon-gothic-vampire-landscape.png;
+  };
   home.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   systemd.user.sessionVariables.QT_QPA_PLATFORMTHEME_QT6 = "qt6ct";
   xdg.enable = true;

@@ -562,8 +562,10 @@ in
     btop
     bun
     cargo
+    claude-code
     clojure
     clippy
+    codex
     discord
     dotnet-sdk_10
     earthbuild

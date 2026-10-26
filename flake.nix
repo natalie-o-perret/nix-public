@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    opencode-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -29,6 +30,7 @@
       dank-greeter,
       dms,
       home-manager,
+      opencode-nixpkgs,
       zen-browser,
       ...
     }:
@@ -82,7 +84,12 @@
           dank-greeter.nixosModules.default
         ];
 
-        nixpkgs.overlays = [ (final: _: { dms-shell = dms.lib.mkDmsShell final; }) ];
+        nixpkgs.overlays = [
+          (final: _: {
+            dms-shell = dms.lib.mkDmsShell final;
+            opencode = opencode-nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system}.opencode;
+          })
+        ];
 
         environment.etc."vivaldi/policies/managed/bookmarks.json".text = builtins.toJSON {
           ManagedBookmarks = [

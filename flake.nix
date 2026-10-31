@@ -85,10 +85,20 @@
         ];
 
         nixpkgs.overlays = [
-          (final: _: {
-            dms-shell = dms.lib.mkDmsShell final;
-            opencode = opencode-nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system}.opencode;
-          })
+          (
+            final: _:
+            let
+              aiPackages = import opencode-nixpkgs {
+                system = final.stdenv.hostPlatform.system;
+                config.allowUnfree = true;
+              };
+            in
+            {
+              claude-code = aiPackages.claude-code;
+              dms-shell = dms.lib.mkDmsShell final;
+              opencode = aiPackages.opencode;
+            }
+          )
         ];
 
         environment.etc."vivaldi/policies/managed/bookmarks.json".text = builtins.toJSON {

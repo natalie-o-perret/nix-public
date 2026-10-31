@@ -27,6 +27,13 @@ let
     color = "pink";
   };
 
+  ponytailPlugin = pkgs.fetchFromGitHub {
+    owner = "DietrichGebert";
+    repo = "ponytail";
+    rev = "v4.9.0";
+    hash = "sha256-8cYggVltBAlZ/Zj4pl1bOu7mQdZFXCmDGW4RSpvRA+w=";
+  };
+
   outputScale = 1.7;
   desktopFont = {
     name = "Inter Variable";
@@ -541,6 +548,7 @@ let
 in
 {
   home.stateVersion = "26.05";
+  home.file.".claude/skills/ponytail".source = ponytailPlugin;
   home.file."Pictures/Wallpapers/Crimson Moon Gothic Vampire Landscape.png" = {
     force = true;
     source = ./wallpapers/crimson-moon-gothic-vampire-landscape.png;

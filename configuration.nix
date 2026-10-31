@@ -107,6 +107,7 @@ in
   users.users.nperret = {
     isNormalUser = true;
     description = "Natalie Perret";
+    shell = pkgs.nushell;
     extraGroups = [
       "networkmanager"
       "wheel"

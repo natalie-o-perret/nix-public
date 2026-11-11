@@ -814,6 +814,10 @@ in
           Value = true;
           Status = "locked";
         };
+        "widget.use-xdg-desktop-portal.file-picker" = {
+          Value = 1;
+          Status = "locked";
+        };
       };
     };
   };
@@ -859,7 +863,7 @@ in
       "image/webp" = [ "org.xfce.ristretto.desktop" ];
       "image/x-pixmap" = [ "org.xfce.ristretto.desktop" ];
       "image/x-xpixmap" = [ "org.xfce.ristretto.desktop" ];
-      "inode/directory" = [ "dms-files.desktop" ];
+      "inode/directory" = [ "dev.duxlabs.files.desktop" ];
       "text/plain" = [ "dev.zed.Zed.desktop" ];
     };
   };

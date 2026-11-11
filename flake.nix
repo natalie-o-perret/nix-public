@@ -13,6 +13,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    dux-files = {
+      url = "github:duxlabs-dev/dux-files/v2.1.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     zen-browser = {
       url = "github:0xc000022070/zen-browser-flake";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -29,6 +34,7 @@
     {
       dank-greeter,
       dms,
+      dux-files,
       home-manager,
       opencode-nixpkgs,
       zen-browser,
@@ -80,6 +86,7 @@
       nixosModules.default = {
         imports = [
           ./configuration.nix
+          dux-files.nixosModules.default
           home-manager.nixosModules.home-manager
           dank-greeter.nixosModules.default
         ];
@@ -97,6 +104,7 @@
               claude-code = aiPackages.claude-code;
               # Keep the desktop's Qt stack while supplying DMS's required Go patch version.
               dms-shell = dms.lib.mkDmsShell (final // { go_1_27 = aiPackages.go_1_27; });
+              dux-files = dux-files.lib.mkDfiles (final // { go_1_27 = aiPackages.go_1_27; });
               opencode = aiPackages.opencode;
             }
           )

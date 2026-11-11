@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   grubTheme = pkgs.runCommand "nixos-grub-theme" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
@@ -70,6 +70,12 @@ in
   services.displayManager.defaultSession = "niri";
 
   programs = {
+    dux-files = {
+      enable = true;
+      package = pkgs.dux-files;
+      portal.enable = true;
+      systemd.enable = true;
+    };
     dms-greeter = {
       enable = true;
       compositor.name = "niri";
@@ -81,6 +87,11 @@ in
     };
     thunar.enable = true;
   };
+
+  xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = lib.mkForce [
+    "dfiles"
+    "gtk"
+  ];
 
   services.gvfs.enable = true;
   services.tumbler.enable = true;

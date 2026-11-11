@@ -182,6 +182,6 @@ window-rule {
 }
 
 window-rule {
-    match app-id=r#"^(com\.danklinux\.dms|dev\.duxlabs\.shell)$"# title="^(Settings|DMS Files)$"
+    match app-id=r#"^(com\.danklinux\.dms|dev\.duxlabs\.shell)$"# title="^Settings$"
     open-floating false
 }

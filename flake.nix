@@ -9,7 +9,7 @@
     };
 
     dms = {
-      url = "github:AvengeMedia/DankMaterialShell/v1.6.0";
+      url = "github:duxlabs-dev/dux-shell/v2.1.2";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -95,7 +95,8 @@
             in
             {
               claude-code = aiPackages.claude-code;
-              dms-shell = dms.lib.mkDmsShell final;
+              # Keep the desktop's Qt stack while supplying DMS's required Go patch version.
+              dms-shell = dms.lib.mkDmsShell (final // { go_1_27 = aiPackages.go_1_27; });
               opencode = aiPackages.opencode;
             }
           )

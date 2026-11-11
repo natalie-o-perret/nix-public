@@ -291,31 +291,22 @@ let
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
       clipboard_entry="$out/share/quickshell/dms/Modals/Clipboard/ClipboardEntry.qml"
-      theme="$out/share/quickshell/dms/Common/Theme.qml"
       gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
       qt5ct_template="$out/share/quickshell/dms/matugen/configs/qt5ct.toml"
       shell="$out/share/quickshell/dms/DMSShell.qml"
-      tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      file_content="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserContent.qml"
-      grid_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserGridDelegate.qml"
-      list_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserListDelegate.qml"
-      caching_image="$out/share/quickshell/dms/DankCommon/Widgets/CachingImage.qml"
-      chmod u+w "$qml" "$clipboard_entry" "$theme" "$gtk" "$qt" "$qt5ct_template" "$shell" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
+      tray="$out/share/quickshell/dms/Modules/DBar/Widgets/TrayMenuContent.qml"
+      chmod u+w "$qml" "$clipboard_entry" "$gtk" "$qt" "$qt5ct_template" "$shell" "$tray"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
         --replace-fail 'readonly property int popoutWidth: 550' 'readonly property int popoutWidth: 440' \
         --replace-fail 'readonly property int popoutHeight: 500' 'readonly property int popoutHeight: 400' \
-        --replace-fail 'readonly property int itemHeight: 72' 'readonly property int itemHeight: 64' \
-        --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88' \
-        --replace-fail 'readonly property int keyboardHintsHeight: 80' 'readonly property int keyboardHintsHeight: 64'
+        --replace-fail 'readonly property real itemHeight: Theme.listItemTwoLineHeight + Theme.densityStepM' 'readonly property real itemHeight: 64' \
+        --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88'
       substituteInPlace "$clipboard_entry" \
-        --replace-fail $'font.weight: Font.Medium\n                width: parent.width' $'font.weight: Font.Medium\n                maximumLineCount: 1\n                width: parent.width' \
-        --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 : 1' 'maximumLineCount: 1'
-      substituteInPlace "$theme" \
-        --replace-fail 'const args = ["dms", "matugen", "queue",' \
-          "const args = [\"$out/bin/dms\", \"matugen\", \"queue\","
+        --replace-fail $'font.weight: Theme.fontWeightMedium\n                width: parent.width' $'font.weight: Theme.fontWeightMedium\n                maximumLineCount: 1\n                width: parent.width' \
+        --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 + Math.min(0, Theme.densityLevel) : 1' 'maximumLineCount: 1'
       # Keep the Qt5 palette in qt5ct's watched directory so running applications reload it.
       substituteInPlace "$qt5ct_template" \
         --replace-fail "output_path = 'CONFIG_DIR/qt5ct/colors/matugen.conf'" \
@@ -330,27 +321,6 @@ let
         --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
-      substituteInPlace "$file_content" \
-        --replace-fail 'folder: encodeFileUrl(currentPath || homeDir)' 'folder: encodeFileUrl(currentPath || getLastPath())' \
-        --replace-fail 'model: folderModel' 'model: visible ? folderModel : null' \
-        --replace-fail 'cacheBuffer: 260' $'cacheBuffer: 260\n                            reuseItems: true' \
-        --replace-fail 'spacing: Style.spacingXXS' $'spacing: Style.spacingXXS\n                            reuseItems: true\n                            add: null\n                            displaced: null\n                            move: null' \
-        --replace-fail 'if (keyboardNavigationActive && currentIndex >= 0)' 'if (visible && keyboardNavigationActive && currentIndex >= 0)' \
-        --replace-fail $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive' $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive\n                                generateVideoThumbnails: false'
-      substituteInPlace "$grid_delegate" \
-        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
-        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
-        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: iconSizes[iconSizeIndex]' \
-        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
-      substituteInPlace "$list_delegate" \
-        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
-        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
-        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: 32' \
-        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
-      substituteInPlace "$caching_image" \
-        --replace-fail 'property bool animate: true' $'property bool animate: true\n    property bool useDiskCache: true' \
-        --replace-fail 'readonly property string cachePath: cacheFileName ?' 'readonly property string cachePath: useDiskCache && cacheFileName ?' \
-        --replace-fail 'if (!hash) {' 'if (!useDiskCache || !hash) {'
       cat >> "$gtk" <<'EOF'
 
       popover.background modelbutton.flat:hover,
@@ -397,7 +367,7 @@ let
       for _ in {1..100}; do
         if [[ -f "$HOME/.config/gtk-3.0/dank-colors.css" && -f "$HOME/.config/qt5ct/matugen.conf" ]]; then
           is_light=false
-          session="$HOME/.local/state/DankMaterialShell/session.json"
+          session="$HOME/.local/state/dms/session.json"
           if [[ -f "$session" && "$(${pkgs.jq}/bin/jq -r '.isLightMode // false' "$session")" == "true" ]]; then
             is_light=true
           fi
@@ -433,7 +403,9 @@ let
   # DMS has no declarative settings option; enforce desktop integration before it starts.
   dmsDesktopSettings = pkgs.writeShellScript "dms-desktop-settings" ''
     set -eu
-    settings_dir="$HOME/.config/DankMaterialShell"
+    # Migrate existing settings before creating or updating the new config file.
+    ${lib.getExe compactDms} version > /dev/null
+    settings_dir="$HOME/.config/dms"
     settings="$settings_dir/settings.json"
     ${pkgs.coreutils}/bin/mkdir -p "$settings_dir"
     if [[ ! -f "$settings" ]]; then
@@ -864,7 +836,7 @@ in
 
   xdg.desktopEntries.dms-files = {
     name = "DMS Files";
-    comment = "Browse files with DankMaterialShell";
+    comment = "Browse files with Dux Modular Shell";
     categories = [
       "FileManager"
       "System"
@@ -1007,7 +979,7 @@ in
     "qt6ct/qt6ct.conf".force = true;
     "zen/smo9aotg.Default Profile/chrome/userChrome.css" = {
       force = true;
-      text = ''@import url("file://${config.xdg.configHome}/DankMaterialShell/zen.css");'';
+      text = ''@import url("file://${config.xdg.configHome}/dms/zen.css");'';
     };
     "zen/smo9aotg.Default Profile/user.js" = {
       force = true;

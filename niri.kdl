@@ -177,6 +177,6 @@ include optional=true "dms/windowrules.kdl"
 include optional=true "dms/wpblur.kdl"
 
 window-rule {
-    match app-id="^com.danklinux.dms$" title="^(Settings|DMS Files)$"
+    match app-id=r#"^(com\.danklinux\.dms|dev\.duxlabs\.shell)$"# title="^(Settings|DMS Files)$"
     open-floating false
 }

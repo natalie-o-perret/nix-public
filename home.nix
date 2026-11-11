@@ -30,8 +30,8 @@ let
   ponytailPlugin = pkgs.fetchFromGitHub {
     owner = "DietrichGebert";
     repo = "ponytail";
-    rev = "v4.9.0";
-    hash = "sha256-8cYggVltBAlZ/Zj4pl1bOu7mQdZFXCmDGW4RSpvRA+w=";
+    rev = "v5.3.3";
+    hash = "sha256-CY0EifTY0UVc6/FPGVJjEfYEf/8QLsINQmoYYKZYh98=";
   };
 
   outputScale = 1.7;
@@ -1020,7 +1020,7 @@ in
         // Managed by Home Manager.
         {
           "$schema": "https://opencode.ai/config.json",
-          "plugin": ["@dietrichgebert/ponytail@4.9.0"]
+          "plugins": ["@dietrichgebert/ponytail@5.3.3"]
         }
       '';
     };

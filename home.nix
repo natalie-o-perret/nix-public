@@ -525,15 +525,6 @@ in
     };
   };
 
-  xfconf.settings.thunar = {
-    "last-location-bar" = "ThunarLocationButtons";
-    "misc-single-click" = true;
-    "misc-single-click-timeout" = {
-      type = "uint";
-      value = 0;
-    };
-  };
-
   programs.bash.enable = true;
   programs.nushell = {
     enable = true;

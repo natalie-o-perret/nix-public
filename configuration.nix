@@ -85,7 +85,8 @@ in
       enable = true;
       useNautilus = false;
     };
-    thunar.enable = true;
+    # Ristretto stores its preferences in Xfconf.
+    xfconf.enable = true;
   };
 
   xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = lib.mkForce [

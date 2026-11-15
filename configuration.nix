@@ -114,6 +114,17 @@ in
   services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 
+  systemd.services.accounts-daemon.postStart = ''
+    set -o pipefail
+    user_path="$(${pkgs.systemd}/bin/busctl --system --json=short call \
+      org.freedesktop.Accounts /org/freedesktop/Accounts \
+      org.freedesktop.Accounts FindUserByName s nperret \
+      | ${pkgs.jq}/bin/jq -er '.data[0]')"
+    ${pkgs.systemd}/bin/busctl --system call \
+      org.freedesktop.Accounts "$user_path" \
+      org.freedesktop.Accounts.User SetIconFile s ${./avatars/nperret.png}
+  '';
+
   virtualisation.podman.enable = true;
 
   users.users.nperret = {

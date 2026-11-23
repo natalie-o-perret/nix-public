@@ -13,8 +13,28 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    dux-calendar = {
+      url = "github:duxlabs-dev/dux-calendar/v2.1.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     dux-files = {
       url = "github:duxlabs-dev/dux-files/v2.1.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    dux-gop = {
+      url = "github:duxlabs-dev/dux-gop/v2.1.1";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    dux-greeter = {
+      url = "github:duxlabs-dev/dux-greeter/v2.1.2";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    dux-search = {
+      url = "github:duxlabs-dev/dux-search/v2.1.1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -23,18 +43,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.home-manager.follows = "home-manager";
     };
-
-    dank-greeter = {
-      url = "github:AvengeMedia/dank-greeter";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
   };
 
   outputs =
     {
-      dank-greeter,
       dms,
+      dux-calendar,
       dux-files,
+      dux-gop,
+      dux-greeter,
+      dux-search,
       home-manager,
       opencode-nixpkgs,
       zen-browser,
@@ -87,8 +105,8 @@
         imports = [
           ./configuration.nix
           dux-files.nixosModules.default
+          dux-greeter.nixosModules.default
           home-manager.nixosModules.home-manager
-          dank-greeter.nixosModules.default
         ];
 
         nixpkgs.overlays = [
@@ -102,6 +120,7 @@
             in
             {
               claude-code = aiPackages.claude-code;
+              dgop = dux-gop.packages.${final.stdenv.hostPlatform.system}.dgop;
               # Keep the desktop's Qt stack while supplying DMS's required Go patch version.
               dms-shell = dms.lib.mkDmsShell (final // { go_1_27 = aiPackages.go_1_27; });
               dux-files = dux-files.lib.mkDfiles (final // { go_1_27 = aiPackages.go_1_27; });
@@ -130,6 +149,8 @@
           };
           sharedModules = [
             dms.homeModules.dank-material-shell
+            dux-calendar.homeModules.default
+            dux-search.homeModules.default
             zen-browser.homeModules.beta
           ];
         };

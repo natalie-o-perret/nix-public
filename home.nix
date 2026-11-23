@@ -427,6 +427,7 @@ in
     clojure
     clippy
     codex
+    dgop
     discord
     dux-images
     dotnet-sdk_10
@@ -716,6 +717,10 @@ in
       "helium.desktop"
       "com.github.jeromerobert.pdfarranger.desktop"
     ];
+    associations.added."image/jpeg" = [
+      "local.dux.images.desktop"
+      "gimp.desktop"
+    ];
     defaultApplications = {
       "image/bmp" = [ "org.xfce.ristretto.desktop" ];
       "image/gif" = [ "org.xfce.ristretto.desktop" ];
@@ -735,6 +740,13 @@ in
     enable = true;
     settings.default = [ "com.mitchellh.ghostty.desktop" ];
   };
+
+  programs.dank-calendar = {
+    enable = true;
+    systemd.enable = true;
+  };
+
+  programs.dsearch.enable = true;
 
   programs.dank-material-shell = {
     enable = true;
@@ -825,6 +837,7 @@ in
         ...output "*" scale ${toString outputScale}
       }
     '';
+    "mimeapps.list".force = true;
     "niri/config.kdl".source = niriConfig;
     "nvim" = {
       source = pkgs.fetchFromGitHub {

@@ -465,7 +465,6 @@ in
     python3
     qbittorrent
     ripgrep
-    ristretto
     rustc
     rustfmt
     secretui
@@ -722,15 +721,19 @@ in
       "gimp.desktop"
     ];
     defaultApplications = {
-      "image/bmp" = [ "org.xfce.ristretto.desktop" ];
-      "image/gif" = [ "org.xfce.ristretto.desktop" ];
-      "image/jpeg" = [ "org.xfce.ristretto.desktop" ];
-      "image/png" = [ "org.xfce.ristretto.desktop" ];
-      "image/svg+xml" = [ "org.xfce.ristretto.desktop" ];
-      "image/tiff" = [ "org.xfce.ristretto.desktop" ];
-      "image/webp" = [ "org.xfce.ristretto.desktop" ];
-      "image/x-pixmap" = [ "org.xfce.ristretto.desktop" ];
-      "image/x-xpixmap" = [ "org.xfce.ristretto.desktop" ];
+      "image/bmp" = [ "local.dux.images.desktop" ];
+      "image/gif" = [ "local.dux.images.desktop" ];
+      "image/jpeg" = [ "local.dux.images.desktop" ];
+      "image/png" = [ "local.dux.images.desktop" ];
+      "image/svg+xml" = [ "local.dux.images.desktop" ];
+      "image/svg+xml-compressed" = [ "local.dux.images.desktop" ];
+      "image/tiff" = [ "local.dux.images.desktop" ];
+      "image/vnd.microsoft.icon" = [ "local.dux.images.desktop" ];
+      "image/webp" = [ "local.dux.images.desktop" ];
+      "image/x-icon" = [ "local.dux.images.desktop" ];
+      "image/x-pixmap" = [ "local.dux.images.desktop" ];
+      "image/x-xbitmap" = [ "local.dux.images.desktop" ];
+      "image/x-xpixmap" = [ "local.dux.images.desktop" ];
       "inode/directory" = [ "dev.duxlabs.files.desktop" ];
       "text/plain" = [ "dev.zed.Zed.desktop" ];
     };

@@ -85,8 +85,6 @@ in
       enable = true;
       useNautilus = false;
     };
-    # Ristretto stores its preferences in Xfconf.
-    xfconf.enable = true;
   };
 
   systemd.user.services.dfiles.path = [

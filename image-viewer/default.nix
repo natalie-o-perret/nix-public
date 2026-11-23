@@ -47,7 +47,7 @@ stdenvNoCC.mkDerivation {
     Icon=image-x-generic
     Terminal=false
     Categories=Graphics;Viewer;
-    MimeType=image/jpeg;image/png;image/webp;image/bmp;image/svg+xml;image/tiff;image/gif;image/x-icon;
+    MimeType=image/bmp;image/gif;image/jpeg;image/png;image/svg+xml;image/svg+xml-compressed;image/tiff;image/vnd.microsoft.icon;image/webp;image/x-icon;image/x-pixmap;image/x-xbitmap;image/x-xpixmap;
     StartupWMClass=local.dux.images
     EOF
     runHook postInstall

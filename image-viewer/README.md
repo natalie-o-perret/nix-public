@@ -2,7 +2,7 @@
 
 A local, read-only image viewer built with Quickshell and the same pinned `DCommon` library as Dux Files. It follows DMS's published colours and typography, including live theme changes.
 
-Run `dimages [IMAGE|FOLDER]` or choose **Images** in Open With. Without arguments it opens Pictures, falling back to Home if Pictures does not exist. Ristretto remains the default image viewer.
+Images is the default viewer for its supported image formats. Run `dimages [IMAGE|FOLDER]` or open an image from the file manager. Without arguments it opens Pictures, falling back to Home if Pictures does not exist.
 
 Images always browses a folder. Opening a file selects it in its containing folder. For example, `dimages ~/Pictures` opens the first supported image there. When the folder has multiple images, a clickable thumbnail strip follows the selection. Browse with Left/Right or the thumbnails. Images are sorted by name, and subfolders are not scanned. Folders without supported images show an empty state.
 

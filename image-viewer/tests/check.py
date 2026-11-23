@@ -29,6 +29,8 @@ package, quickshell = Path(sys.argv[1]), sys.argv[2]
 app = package / "bin/dimages"
 desktop = (package / "share/applications/local.dux.images.desktop").read_text()
 assert "\nName=Images\n" in desktop
+mime_types = next(line.removeprefix("MimeType=") for line in desktop.splitlines() if line.startswith("MimeType=")).split(";")
+assert {"image/x-xbitmap", "image/x-xpixmap"} <= set(mime_types)
 with tempfile.TemporaryDirectory(prefix="dux-images-check-", dir=os.environ.get("TMPDIR")) as temporary:
     root = Path(temporary)
     images = root / "images #%? \u00fc"
@@ -64,6 +66,10 @@ with tempfile.TemporaryDirectory(prefix="dux-images-check-", dir=os.environ.get(
     jpeg = base64.b64decode('/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAACAAQDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCYAFuf/9k=')
     exif = b'Exif\0\0II*\0' + struct.pack('<IH', 8, 1) + struct.pack('<HHIHHI', 0x112, 3, 1, 6, 0, 0)
     oriented.write_bytes(jpeg[:2] + b'\xff\xe1' + struct.pack('>H', len(exif) + 2) + exif + jpeg[2:])
+    pixmap = root / "icon.xpm"
+    pixmap.write_text('/* XPM */\nstatic char *icon[] = {\n"2 2 1 1",\n"x c #e91e63",\n"xx",\n"xx"};\n')
+    bitmap = root / "icon.xbm"
+    bitmap.write_text('#define icon_width 8\n#define icon_height 2\nstatic unsigned char icon_bits[] = {0x55, 0xaa};\n')
     original = {p: hashlib.sha256(p.read_bytes()).digest() for p in root.rglob("*") if p.is_file()}
 
     runtime = root / "runtime"
@@ -84,6 +90,8 @@ with tempfile.TemporaryDirectory(prefix="dux-images-check-", dir=os.environ.get(
         "TEST_VECTOR": str(vector),
         "TEST_RETINA": str(retina),
         "TEST_ORIENTED": str(oriented),
+        "TEST_XPM": str(pixmap),
+        "TEST_XBM": str(bitmap),
         "TEST_FOLDER": str(images),
         "TEST_EMPTY_FOLDER": str(empty),
         "TEST_SINGLE": str(single_image),

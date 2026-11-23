@@ -33,7 +33,7 @@ FloatingWindow {
     readonly property string displayName: FilePaths.baseName(folderPath) || folderPath || "Images"
     readonly property int currentIndex: folder.status === FolderListModel.Ready && folder.count > 0 && filePath !== "" ? folder.indexOf(FilePaths.toFileUrl(filePath)) : -1
     readonly property bool thumbnailsVisible: folder.status === FolderListModel.Ready && imageCount > 1 && FilePaths.parentOf(folder.get(0, "filePath")) === folderPath
-    readonly property var imageFilters: ["*.bmp", "*.gif", "*.ico", "*.jpeg", "*.jpg", "*.png", "*.svg", "*.svgz", "*.tif", "*.tiff", "*.webp"]
+    readonly property var imageFilters: ["*.bmp", "*.gif", "*.ico", "*.jpeg", "*.jpg", "*.png", "*.svg", "*.svgz", "*.tif", "*.tiff", "*.webp", "*.xbm", "*.xpm"]
 
     title: folderPath ? displayName + " - Images" : displayName
     implicitWidth: 1000

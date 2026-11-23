@@ -252,6 +252,20 @@ ShellRoot {
                     if (++test.waitTicks < 12)
                         return;
                     test.check(theme.tokens.primary === "#00aaff", "Malformed theme preserves the last valid palette");
+                    viewer.openUrl(Quickshell.env("TEST_XPM"));
+                    test.phase++;
+                    break;
+                case 21:
+                    if (!viewer.loaded || viewer.currentIndex < 0)
+                        return;
+                    test.check(viewer.pixelWidth === 2 && viewer.pixelHeight === 2, "XPM decoding and folder navigation");
+                    viewer.openUrl(Quickshell.env("TEST_XBM"));
+                    test.phase++;
+                    break;
+                case 22:
+                    if (!viewer.loaded || viewer.currentIndex < 0)
+                        return;
+                    test.check(viewer.pixelWidth === 8 && viewer.pixelHeight === 2, "XBM decoding and folder navigation");
                     console.log("DUX_IMAGES_TEST_PASS");
                     Qt.quit();
                 }

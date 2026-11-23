@@ -23,19 +23,9 @@ let
     cp -r ${pkgs.bibata-cursors}/share/icons/Bibata-Modern-Ice $out/share/icons/
   '';
 
-  adwaitaPink = pkgs.runCommand "adwaita-pink-icons" { } ''
-    cp -r ${pkgs.adwaita-icon-theme} "$out"
-    chmod -R u+w "$out"
-    substituteInPlace \
-      "$out"/share/icons/Adwaita/scalable/places/folder*.svg \
-      "$out"/share/icons/Adwaita/scalable/places/user-{home,desktop}.svg \
-      "$out"/share/icons/Adwaita/scalable/mimetypes/inode-directory.svg \
-      --replace-fail '#438de6' '#ad1457' \
-      --replace-fail '#62a0ea' '#c2185b' \
-      --replace-fail '#a4caee' '#e91e63' \
-      --replace-fail '#afd4ff' '#f8bbd0' \
-      --replace-fail '#c0d5ea' '#f48fb1'
-  '';
+  papirusPink = pkgs.papirus-icon-theme.override {
+    color = "pink";
+  };
 
   ponytailPlugin = pkgs.fetchFromGitHub {
     owner = "DietrichGebert";
@@ -283,7 +273,7 @@ let
   qtAppearance = {
     color_scheme_path = "${config.xdg.configHome}/qt5ct/matugen.conf";
     custom_palette = true;
-    icon_theme = "Adwaita";
+    icon_theme = "Papirus-Dark";
     standard_dialogs = "xdgdesktopportal";
     style = "Fusion";
   };
@@ -305,9 +295,9 @@ let
     tmp="$(${pkgs.coreutils}/bin/mktemp)"
     trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
     ${pkgs.jq}/bin/jq '
-      .iconThemeDark = "System Default"
-      | .iconThemeLight = "System Default"
-      | .iconThemePerMode = false
+      .iconThemeDark = "Papirus-Dark"
+      | .iconThemeLight = "Papirus-Light"
+      | .iconThemePerMode = true
       | .fontFamily = "${desktopFont.name}"
       | .fontScale = 1.0
       | .firstDayOfWeek = 1
@@ -428,6 +418,7 @@ in
   ];
 
   home.packages = with pkgs; [
+    adwaita-icon-theme
     audacity
     btop
     bun
@@ -516,8 +507,8 @@ in
       package = pkgs.inter;
     };
     iconTheme = {
-      name = "Adwaita";
-      package = adwaitaPink;
+      name = "Papirus-Dark";
+      package = papirusPink;
     };
   };
 

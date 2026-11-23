@@ -89,6 +89,11 @@ in
     xfconf.enable = true;
   };
 
+  systemd.user.services.dfiles.path = [
+    "/etc/profiles/per-user/nperret"
+    "/run/current-system/sw"
+  ];
+
   xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = lib.mkForce [
     "dfiles"
     "gtk"

@@ -23,9 +23,19 @@ let
     cp -r ${pkgs.bibata-cursors}/share/icons/Bibata-Modern-Ice $out/share/icons/
   '';
 
-  papirusPink = pkgs.papirus-icon-theme.override {
-    color = "pink";
-  };
+  adwaitaPink = pkgs.runCommand "adwaita-pink-icons" { } ''
+    cp -r ${pkgs.adwaita-icon-theme} "$out"
+    chmod -R u+w "$out"
+    substituteInPlace \
+      "$out"/share/icons/Adwaita/scalable/places/folder*.svg \
+      "$out"/share/icons/Adwaita/scalable/places/user-{home,desktop}.svg \
+      "$out"/share/icons/Adwaita/scalable/mimetypes/inode-directory.svg \
+      --replace-fail '#438de6' '#ad1457' \
+      --replace-fail '#62a0ea' '#c2185b' \
+      --replace-fail '#a4caee' '#e91e63' \
+      --replace-fail '#afd4ff' '#f8bbd0' \
+      --replace-fail '#c0d5ea' '#f48fb1'
+  '';
 
   ponytailPlugin = pkgs.fetchFromGitHub {
     owner = "DietrichGebert";
@@ -34,7 +44,7 @@ let
     hash = "sha256-CY0EifTY0UVc6/FPGVJjEfYEf/8QLsINQmoYYKZYh98=";
   };
 
-  outputScale = 1.7;
+  outputScale = 1.5;
   desktopFont = {
     name = "Inter Variable";
     size = 10;
@@ -273,7 +283,7 @@ let
   qtAppearance = {
     color_scheme_path = "${config.xdg.configHome}/qt5ct/matugen.conf";
     custom_palette = true;
-    icon_theme = "Papirus-Dark";
+    icon_theme = "Adwaita";
     standard_dialogs = "xdgdesktopportal";
     style = "Fusion";
   };
@@ -295,8 +305,8 @@ let
     tmp="$(${pkgs.coreutils}/bin/mktemp)"
     trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
     ${pkgs.jq}/bin/jq '
-      .iconThemeDark = "Papirus-Dark"
-      | .iconThemeLight = "Papirus-Dark"
+      .iconThemeDark = "System Default"
+      | .iconThemeLight = "System Default"
       | .iconThemePerMode = false
       | .fontFamily = "${desktopFont.name}"
       | .fontScale = 1.0
@@ -427,6 +437,7 @@ in
     clippy
     codex
     discord
+    dux-images
     dotnet-sdk_10
     earthbuild
     fd
@@ -456,7 +467,6 @@ in
     odin
     opentofu
     oxkerPodman
-    papirusPink
     pear-desktop
     pdfarranger
     podman-compose
@@ -506,8 +516,8 @@ in
       package = pkgs.inter;
     };
     iconTheme = {
-      name = "Papirus-Dark";
-      package = papirusPink;
+      name = "Adwaita";
+      package = adwaitaPink;
     };
   };
 
@@ -710,6 +720,11 @@ in
 
   xdg.mimeApps = {
     enable = true;
+    associations.added."application/pdf" = [
+      "vivaldi-stable.desktop"
+      "helium.desktop"
+      "com.github.jeromerobert.pdfarranger.desktop"
+    ];
     defaultApplications = {
       "image/bmp" = [ "org.xfce.ristretto.desktop" ];
       "image/gif" = [ "org.xfce.ristretto.desktop" ];

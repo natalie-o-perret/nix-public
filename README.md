@@ -9,6 +9,7 @@ Reusable NixOS configuration for a Niri desktop powered by DankMaterialShell.
 - `home.nix` defines the user environment: applications, fonts, themes, browser policies, DMS integration and Home Manager settings.
 - `niri.kdl` contains the compositor layout, bindings and environment.
 - `monitor-sigils/` provides DMS animations for monitor and directional focus changes.
+- `image-viewer/` provides Images, a read-only Quickshell viewer using Dux Files' shared widgets and the live DMS theme.
 
 Hardware-specific files are intentionally not included. Import `nixosModules.default` from a host flake alongside that host's generated `hardware-configuration.nix`.
 

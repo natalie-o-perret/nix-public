@@ -105,6 +105,9 @@
               # Keep the desktop's Qt stack while supplying DMS's required Go patch version.
               dms-shell = dms.lib.mkDmsShell (final // { go_1_27 = aiPackages.go_1_27; });
               dux-files = dux-files.lib.mkDfiles (final // { go_1_27 = aiPackages.go_1_27; });
+              dux-images = final.callPackage ./image-viewer {
+                dcommon = dux-files.inputs.dank-qml-common;
+              };
               opencode = aiPackages.opencode;
             }
           )

@@ -1,0 +1,31 @@
+#!@bash@
+set -euo pipefail
+
+case "${1-}" in
+  -h|--help)
+    printf 'Usage: dimages [--] [IMAGE|FOLDER]\nView an image or browse the images in a folder. Images are never modified.\n'
+    exit 0
+    ;;
+  --) shift ;;
+  -*) printf 'Unknown option: %s\n' "$1" >&2; exit 2 ;;
+esac
+if (( $# > 1 )); then
+  printf 'Open one image or folder at a time: dimages [IMAGE|FOLDER]\n' >&2
+  exit 2
+fi
+
+image=""
+folder=""
+if (( $# )); then
+  IFS= read -r -d '' image < <(@realpath@ -ez -- "$1")
+  if [[ -d "$image" && -r "$image" && -x "$image" ]]; then
+    folder="$image"
+    image=""
+  elif [[ ! -f "$image" || ! -r "$image" ]]; then
+    printf 'Not a readable image file or folder: %s\n' "$1" >&2
+    exit 1
+  fi
+fi
+export DIMAGES_FILE="$image"
+export DIMAGES_FOLDER="$folder"
+exec @quickshell@ -p '@qml@'

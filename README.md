@@ -4,11 +4,12 @@ Reusable NixOS configuration for a Niri desktop powered by DankMaterialShell.
 
 ## Architecture
 
-- `flake.nix` pins Nixpkgs, Home Manager, DMS, Zen Browser and the DMS greeter. It exports `nixosModules.default` and reusable browser/bookmark values under `lib`.
+- `flake.nix` pins Nixpkgs, Home Manager, the Dux desktop apps and Zen Browser. It exports `nixosModules.default` and reusable browser/bookmark values under `lib`.
 - `configuration.nix` defines the portable NixOS base: user, boot, networking, audio, printing, Podman, Niri and system services used by DMS.
 - `home.nix` defines the user environment: applications, fonts, themes, browser policies, DMS integration and Home Manager settings.
 - `niri.kdl` contains the compositor layout, bindings and environment.
 - `monitor-sigils/` provides DMS animations for monitor and directional focus changes.
+- `image-viewer/` provides Images, a read-only Quickshell viewer using Dux Files' shared widgets and the live DMS theme.
 
 Hardware-specific files are intentionally not included. Import `nixosModules.default` from a host flake alongside that host's generated `hardware-configuration.nix`.
 

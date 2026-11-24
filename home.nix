@@ -27,7 +27,14 @@ let
     color = "pink";
   };
 
-  outputScale = 1.7;
+  ponytailPlugin = pkgs.fetchFromGitHub {
+    owner = "DietrichGebert";
+    repo = "ponytail";
+    rev = "v5.3.3";
+    hash = "sha256-CY0EifTY0UVc6/FPGVJjEfYEf/8QLsINQmoYYKZYh98=";
+  };
+
+  outputScale = 1.5;
   desktopFont = {
     name = "Inter Variable";
     size = 10;
@@ -178,137 +185,26 @@ let
         '';
       });
 
-  dmsFileJobs = pkgs.stdenv.mkDerivation {
-    pname = "dms-files-backend";
-    version = "1.0.0";
-    src = ./dms-file-browser/FileJobs.vala;
-    dontUnpack = true;
-    nativeBuildInputs = [
-      pkgs.pkg-config
-      pkgs.vala
-    ];
-    buildInputs = [
-      pkgs.glib
-      pkgs.json-glib
-    ];
-    buildPhase = ''
-      runHook preBuild
-      valac --pkg gio-2.0 --pkg json-glib-1.0 --pkg posix \
-        -o dms-files-backend "$src"
-      runHook postBuild
-    '';
-    doCheck = true;
-    checkPhase = ''
-      runHook preCheck
-      root="$TMPDIR/dms-files-test"
-      mkdir -p "$root/home" "$root/data"
-      mkdir -p "$root/src/tree" "$root/dst/tree"
-      printf 'source note\n' > "$root/src/note.txt"
-      printf 'source only\n' > "$root/src/tree/source-only"
-      printf 'destination only\n' > "$root/dst/tree/destination-only"
-      printf 'new collision\n' > "$root/src/tree/collision"
-      printf 'old collision\n' > "$root/dst/tree/collision"
-      cat > "$root/basic-requests" <<EOF
-      {"id":1,"op":"mkdir","destination":"$root/created-dir"}
-      {"id":2,"op":"touch","destination":"$root/created-file"}
-      {"id":3,"op":"copy","sources":["$root/src/note.txt"],"destination":"$root/dst","policy":"ask"}
-      {"id":4,"op":"copy","sources":["$root/src/note.txt"],"destination":"$root/dst","policy":"ask"}
-      {"id":5,"op":"copy","sources":["$root/src/note.txt"],"destination":"$root/dst","policy":"rename"}
-      {"id":6,"op":"rename","source":"$root/src/note.txt","destination":"$root/src/moved.txt"}
-      {"id":7,"op":"move","sources":["$root/src/moved.txt"],"destination":"$root/dst","policy":"ask"}
-      {"id":8,"op":"delete","sources":["$root/dst/moved.txt"]}
-      {"id":9,"op":"copy","sources":["$root/src/tree"],"destination":"$root/dst","policy":"replace"}
-      EOF
-      HOME="$root/home" XDG_DATA_HOME="$root/data" \
-        ./dms-files-backend < "$root/basic-requests" > "$root/basic-events"
-      test "$(grep -c '"status":"ok"' "$root/basic-events")" -eq 8
-      test "$(grep -c '"status":"conflict"' "$root/basic-events")" -eq 1
-      test "$(grep -c '"event":"rejected"' "$root/basic-events")" -eq 0
-      test -d "$root/created-dir"
-      test -f "$root/created-file"
-      test -f "$root/dst/note.txt"
-      test -f "$root/dst/note (copy 1).txt"
-      test ! -e "$root/src/moved.txt"
-      test ! -e "$root/dst/moved.txt"
-      test -f "$root/dst/tree/source-only"
-      test -f "$root/dst/tree/destination-only"
-      grep -qx 'new collision' "$root/dst/tree/collision"
-
-      mkdir -p "$root/safety/source" "$root/safety/destination/mismatch/kept" \
-        "$root/safety/identity" "$root/safety/real-destination"
-      printf 'new a\n' > "$root/safety/source/a"
-      printf 'new b\n' > "$root/safety/source/b"
-      printf 'new mismatch\n' > "$root/safety/source/mismatch"
-      printf 'old a\n' > "$root/safety/destination/a"
-      printf 'old b\n' > "$root/safety/destination/b"
-      printf 'keep me\n' > "$root/safety/destination/mismatch/kept/sentinel"
-      printf 'identity\n' > "$root/safety/identity/file"
-      printf 'through symlink\n' > "$root/safety/source/through-symlink"
-      ln -s "$root/safety/identity" "$root/safety/identity-link"
-      ln -s "$root/safety/real-destination" "$root/safety/destination-link"
-      ln -s through-symlink "$root/safety/source/link"
-      cat > "$root/safety-requests" <<EOF
-      {"id":10,"op":"copy","sources":["$root/safety/source/a","$root/safety/source/b"],"destination":"$root/safety/destination","policy":"replace","policyOnce":true}
-      {"id":11,"op":"copy","sources":["$root/safety/source/mismatch"],"destination":"$root/safety/destination","policy":"replace"}
-      {"id":12,"op":"copy","sources":["$root/safety/identity/file"],"destination":"$root/safety/identity-link","policy":"replace"}
-      {"id":13,"op":"copy","sources":["$root/safety/source/through-symlink"],"destination":"$root/safety/destination-link","policy":"ask"}
-      {"id":14,"op":"copy","sources":["$root/safety/source/link"],"destination":"$root/safety/real-destination","policy":"ask"}
-      {"id":15,"op":"copy","sources":["$root/safety/source/a"],"destination":"$root/safety/real-destination","policyOnce":"yes"}
-      EOF
-      HOME="$root/home" XDG_DATA_HOME="$root/data" \
-        ./dms-files-backend < "$root/safety-requests" > "$root/safety-events"
-      grep -q '"event":"finished","id":10,"job":"copy","status":"conflict"' "$root/safety-events"
-      grep -q '"event":"finished","id":11,"job":"copy","status":"error"' "$root/safety-events"
-      grep -q '"event":"finished","id":12,"job":"copy","status":"error"' "$root/safety-events"
-      test "$(grep -c '"event":"rejected","id":15' "$root/safety-events")" -eq 1
-      test "$(grep -c '"event":"finished","id":15' "$root/safety-events")" -eq 0
-      grep -qx 'new a' "$root/safety/destination/a"
-      grep -qx 'old b' "$root/safety/destination/b"
-      grep -qx 'keep me' "$root/safety/destination/mismatch/kept/sentinel"
-      grep -qx 'new mismatch' "$root/safety/source/mismatch"
-      grep -qx 'identity' "$root/safety/identity/file"
-      grep -qx 'through symlink' "$root/safety/real-destination/through-symlink"
-      test -L "$root/safety/real-destination/link"
-      test "$(readlink "$root/safety/real-destination/link")" = through-symlink
-      runHook postCheck
-    '';
-    installPhase = ''
-      runHook preInstall
-      install -Dm755 dms-files-backend "$out/bin/dms-files-backend"
-      runHook postInstall
-    '';
-    meta.mainProgram = "dms-files-backend";
-  };
-
   compactDms = pkgs.dms-shell.overrideAttrs (old: {
     postFixup = (old.postFixup or "") + ''
       qml="$out/share/quickshell/dms/Modals/Clipboard/ClipboardConstants.qml"
       clipboard_entry="$out/share/quickshell/dms/Modals/Clipboard/ClipboardEntry.qml"
-      theme="$out/share/quickshell/dms/Common/Theme.qml"
       gtk="$out/share/quickshell/dms/matugen/templates/gtk-colors.css"
       qt="$out/share/quickshell/dms/scripts/qt.sh"
       qt5ct_template="$out/share/quickshell/dms/matugen/configs/qt5ct.toml"
       shell="$out/share/quickshell/dms/DMSShell.qml"
-      tray="$out/share/quickshell/dms/Modules/DankBar/Widgets/SystemTrayBar.qml"
-      file_content="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserContent.qml"
-      grid_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserGridDelegate.qml"
-      list_delegate="$out/share/quickshell/dms/DankCommon/Modals/FileBrowser/FileBrowserListDelegate.qml"
-      caching_image="$out/share/quickshell/dms/DankCommon/Widgets/CachingImage.qml"
-      chmod u+w "$qml" "$clipboard_entry" "$theme" "$gtk" "$qt" "$qt5ct_template" "$shell" "$tray" "$file_content" "$grid_delegate" "$list_delegate" "$caching_image"
+      tray="$out/share/quickshell/dms/Modules/DBar/Widgets/TrayMenuContent.qml"
+      chmod u+w "$qml" "$clipboard_entry" "$gtk" "$qt" "$qt5ct_template" "$shell" "$tray"
       substituteInPlace "$qml" \
         --replace-fail 'readonly property int modalWidth: 650' 'readonly property int modalWidth: 520' \
         --replace-fail 'readonly property int modalHeight: 550' 'readonly property int modalHeight: 440' \
         --replace-fail 'readonly property int popoutWidth: 550' 'readonly property int popoutWidth: 440' \
         --replace-fail 'readonly property int popoutHeight: 500' 'readonly property int popoutHeight: 400' \
-        --replace-fail 'readonly property int itemHeight: 72' 'readonly property int itemHeight: 64' \
-        --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88' \
-        --replace-fail 'readonly property int keyboardHintsHeight: 80' 'readonly property int keyboardHintsHeight: 64'
+        --replace-fail 'readonly property real itemHeight: Theme.listItemTwoLineHeight + Theme.densityStepM' 'readonly property real itemHeight: 64' \
+        --replace-fail 'readonly property int thumbnailSize: 100' 'readonly property int thumbnailSize: 88'
       substituteInPlace "$clipboard_entry" \
-        --replace-fail $'font.weight: Font.Medium\n                width: parent.width' $'font.weight: Font.Medium\n                maximumLineCount: 1\n                width: parent.width' \
-        --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 : 1' 'maximumLineCount: 1'
-      substituteInPlace "$theme" \
-        --replace-fail 'const args = ["dms", "matugen", "queue",' \
-          "const args = [\"$out/bin/dms\", \"matugen\", \"queue\","
+        --replace-fail $'font.weight: Theme.fontWeightMedium\n                width: parent.width' $'font.weight: Theme.fontWeightMedium\n                maximumLineCount: 1\n                width: parent.width' \
+        --replace-fail 'maximumLineCount: entryType === "long_text" ? 3 + Math.min(0, Theme.densityLevel) : 1' 'maximumLineCount: 1'
       # Keep the Qt5 palette in qt5ct's watched directory so running applications reload it.
       substituteInPlace "$qt5ct_template" \
         --replace-fail "output_path = 'CONFIG_DIR/qt5ct/colors/matugen.conf'" \
@@ -323,27 +219,6 @@ let
         --replace-fail $'id: polkitAuthModalLoader\n        active: false' $'id: polkitAuthModalLoader\n        active: true'
       substituteInPlace "$tray" \
         --replace-fail 'font.pixelSize: Theme.fontSizeSmall' 'font.pixelSize: Theme.fontSizeMedium'
-      substituteInPlace "$file_content" \
-        --replace-fail 'folder: encodeFileUrl(currentPath || homeDir)' 'folder: encodeFileUrl(currentPath || getLastPath())' \
-        --replace-fail 'model: folderModel' 'model: visible ? folderModel : null' \
-        --replace-fail 'cacheBuffer: 260' $'cacheBuffer: 260\n                            reuseItems: true' \
-        --replace-fail 'spacing: Style.spacingXXS' $'spacing: Style.spacingXXS\n                            reuseItems: true\n                            add: null\n                            displaced: null\n                            move: null' \
-        --replace-fail 'if (keyboardNavigationActive && currentIndex >= 0)' 'if (visible && keyboardNavigationActive && currentIndex >= 0)' \
-        --replace-fail $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive' $'selectedIndex: root.selectedIndex\n                                keyboardNavigationActive: root.keyboardNavigationActive\n                                generateVideoThumbnails: false'
-      substituteInPlace "$grid_delegate" \
-        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
-        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
-        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: iconSizes[iconSizeIndex]' \
-        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
-      substituteInPlace "$list_delegate" \
-        --replace-fail 'property bool keyboardNavigationActive: false' $'property bool keyboardNavigationActive: false\n    property bool generateVideoThumbnails: true' \
-        --replace-fail 'if (_thumbGenAttempted)' 'if (!generateVideoThumbnails || _thumbGenAttempted)' \
-        --replace-fail 'maxCacheSize: 256' 'maxCacheSize: 32' \
-        --replace-fail 'animate: false' $'animate: false\n                    useDiskCache: false'
-      substituteInPlace "$caching_image" \
-        --replace-fail 'property bool animate: true' $'property bool animate: true\n    property bool useDiskCache: true' \
-        --replace-fail 'readonly property string cachePath: cacheFileName ?' 'readonly property string cachePath: useDiskCache && cacheFileName ?' \
-        --replace-fail 'if (!hash) {' 'if (!useDiskCache || !hash) {'
       cat >> "$gtk" <<'EOF'
 
       popover.background modelbutton.flat:hover,
@@ -357,24 +232,6 @@ let
       EOF
     '';
   });
-
-  dmsFilesPlugin = pkgs.runCommandLocal "dms-files-plugin" { } ''
-    mkdir -p "$out"
-    cp -r ${./dms-file-browser}/. "$out/"
-    chmod -R u+w "$out"
-    substituteInPlace "$out/FileManagerWindow.qml" \
-      --replace-fail 'command: ["dms-files-backend"]' 'command: ["${lib.getExe dmsFileJobs}"]'
-  '';
-
-  dmsFilesLauncher = pkgs.writeShellApplication {
-    name = "dms-files";
-    text = ''
-      if (( $# > 0 )); then
-        exec ${lib.getExe compactDms} ipc call dmsFiles openPath "$1"
-      fi
-      exec ${lib.getExe compactDms} ipc call dmsFiles open
-    '';
-  };
 
   dmsSystemAppTheming = pkgs.writeShellApplication {
     name = "dms-system-app-theming";
@@ -390,7 +247,7 @@ let
       for _ in {1..100}; do
         if [[ -f "$HOME/.config/gtk-3.0/dank-colors.css" && -f "$HOME/.config/qt5ct/matugen.conf" ]]; then
           is_light=false
-          session="$HOME/.local/state/DankMaterialShell/session.json"
+          session="$HOME/.local/state/dms/session.json"
           if [[ -f "$session" && "$(${pkgs.jq}/bin/jq -r '.isLightMode // false' "$session")" == "true" ]]; then
             is_light=true
           fi
@@ -426,7 +283,9 @@ let
   # DMS has no declarative settings option; enforce desktop integration before it starts.
   dmsDesktopSettings = pkgs.writeShellScript "dms-desktop-settings" ''
     set -eu
-    settings_dir="$HOME/.config/DankMaterialShell"
+    # Migrate existing settings before creating or updating the new config file.
+    ${lib.getExe compactDms} version > /dev/null
+    settings_dir="$HOME/.config/dms"
     settings="$settings_dir/settings.json"
     ${pkgs.coreutils}/bin/mkdir -p "$settings_dir"
     if [[ ! -f "$settings" ]]; then
@@ -437,8 +296,8 @@ let
     trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
     ${pkgs.jq}/bin/jq '
       .iconThemeDark = "Papirus-Dark"
-      | .iconThemeLight = "Papirus-Dark"
-      | .iconThemePerMode = false
+      | .iconThemeLight = "Papirus-Light"
+      | .iconThemePerMode = true
       | .fontFamily = "${desktopFont.name}"
       | .fontScale = 1.0
       | .firstDayOfWeek = 1
@@ -541,6 +400,7 @@ let
 in
 {
   home.stateVersion = "26.05";
+  home.file.".claude/skills/ponytail".source = ponytailPlugin;
   home.file."Pictures/Wallpapers/Crimson Moon Gothic Vampire Landscape.png" = {
     force = true;
     source = ./wallpapers/crimson-moon-gothic-vampire-landscape.png;
@@ -558,13 +418,18 @@ in
   ];
 
   home.packages = with pkgs; [
+    adwaita-icon-theme
     audacity
     btop
     bun
     cargo
+    claude-code
     clojure
     clippy
+    codex
+    dgop
     discord
+    dux-images
     dotnet-sdk_10
     earthbuild
     fd
@@ -594,14 +459,12 @@ in
     odin
     opentofu
     oxkerPodman
-    papirusPink
     pear-desktop
     pdfarranger
     podman-compose
     python3
     qbittorrent
     ripgrep
-    ristretto
     rustc
     rustfmt
     secretui
@@ -610,7 +473,6 @@ in
     swappy
     telegram-desktop
     terraform
-    dmsFileJobs
     dmsVivaldi
     scaledVlc
     wl-clipboard
@@ -661,15 +523,6 @@ in
     qt6ctSettings = {
       Appearance = qtAppearance;
       Fonts = qtFonts;
-    };
-  };
-
-  xfconf.settings.thunar = {
-    "last-location-bar" = "ThunarLocationButtons";
-    "misc-single-click" = true;
-    "misc-single-click-timeout" = {
-      type = "uint";
-      value = 0;
     };
   };
 
@@ -832,6 +685,10 @@ in
           Value = true;
           Status = "locked";
         };
+        "widget.use-xdg-desktop-portal.file-picker" = {
+          Value = 1;
+          Status = "locked";
+        };
       };
     };
   };
@@ -852,32 +709,32 @@ in
     };
   };
 
-  xdg.desktopEntries.dms-files = {
-    name = "DMS Files";
-    comment = "Browse files with DankMaterialShell";
-    categories = [
-      "FileManager"
-      "System"
-    ];
-    exec = "${lib.getExe dmsFilesLauncher} %u";
-    icon = "folder";
-    mimeType = [ "inode/directory" ];
-    terminal = false;
-  };
-
   xdg.mimeApps = {
     enable = true;
+    associations.added."application/pdf" = [
+      "vivaldi-stable.desktop"
+      "helium.desktop"
+      "com.github.jeromerobert.pdfarranger.desktop"
+    ];
+    associations.added."image/jpeg" = [
+      "local.dux.images.desktop"
+      "gimp.desktop"
+    ];
     defaultApplications = {
-      "image/bmp" = [ "org.xfce.ristretto.desktop" ];
-      "image/gif" = [ "org.xfce.ristretto.desktop" ];
-      "image/jpeg" = [ "org.xfce.ristretto.desktop" ];
-      "image/png" = [ "org.xfce.ristretto.desktop" ];
-      "image/svg+xml" = [ "org.xfce.ristretto.desktop" ];
-      "image/tiff" = [ "org.xfce.ristretto.desktop" ];
-      "image/webp" = [ "org.xfce.ristretto.desktop" ];
-      "image/x-pixmap" = [ "org.xfce.ristretto.desktop" ];
-      "image/x-xpixmap" = [ "org.xfce.ristretto.desktop" ];
-      "inode/directory" = [ "dms-files.desktop" ];
+      "image/bmp" = [ "local.dux.images.desktop" ];
+      "image/gif" = [ "local.dux.images.desktop" ];
+      "image/jpeg" = [ "local.dux.images.desktop" ];
+      "image/png" = [ "local.dux.images.desktop" ];
+      "image/svg+xml" = [ "local.dux.images.desktop" ];
+      "image/svg+xml-compressed" = [ "local.dux.images.desktop" ];
+      "image/tiff" = [ "local.dux.images.desktop" ];
+      "image/vnd.microsoft.icon" = [ "local.dux.images.desktop" ];
+      "image/webp" = [ "local.dux.images.desktop" ];
+      "image/x-icon" = [ "local.dux.images.desktop" ];
+      "image/x-pixmap" = [ "local.dux.images.desktop" ];
+      "image/x-xbitmap" = [ "local.dux.images.desktop" ];
+      "image/x-xpixmap" = [ "local.dux.images.desktop" ];
+      "inode/directory" = [ "dev.duxlabs.files.desktop" ];
       "text/plain" = [ "dev.zed.Zed.desktop" ];
     };
   };
@@ -887,6 +744,13 @@ in
     settings.default = [ "com.mitchellh.ghostty.desktop" ];
   };
 
+  programs.dank-calendar = {
+    enable = true;
+    systemd.enable = true;
+  };
+
+  programs.dsearch.enable = true;
+
   programs.dank-material-shell = {
     enable = true;
     package = compactDms;
@@ -894,10 +758,6 @@ in
     plugins.emojiLauncher = {
       enable = true;
       src = emojiLauncher;
-    };
-    plugins.dmsFiles = {
-      enable = true;
-      src = dmsFilesPlugin;
     };
     plugins.monitorSigils = {
       enable = true;
@@ -916,10 +776,7 @@ in
   };
 
   systemd.user.services.dms = {
-    Unit.X-Restart-Triggers = [
-      dmsFilesPlugin
-      "${./monitor-sigils}"
-    ];
+    Unit.X-Restart-Triggers = [ "${./monitor-sigils}" ];
     Service = {
       Environment = [
         "XCURSOR_THEME=Bibata-Modern-Ice"
@@ -983,6 +840,7 @@ in
         ...output "*" scale ${toString outputScale}
       }
     '';
+    "mimeapps.list".force = true;
     "niri/config.kdl".source = niriConfig;
     "nvim" = {
       source = pkgs.fetchFromGitHub {
@@ -997,7 +855,7 @@ in
     "qt6ct/qt6ct.conf".force = true;
     "zen/smo9aotg.Default Profile/chrome/userChrome.css" = {
       force = true;
-      text = ''@import url("file://${config.xdg.configHome}/DankMaterialShell/zen.css");'';
+      text = ''@import url("file://${config.xdg.configHome}/dms/zen.css");'';
     };
     "zen/smo9aotg.Default Profile/user.js" = {
       force = true;
@@ -1010,7 +868,7 @@ in
         // Managed by Home Manager.
         {
           "$schema": "https://opencode.ai/config.json",
-          "plugin": ["@dietrichgebert/ponytail@4.9.0"]
+          "plugins": ["@dietrichgebert/ponytail@5.3.3"]
         }
       '';
     };

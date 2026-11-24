@@ -73,7 +73,7 @@ binds {
     Mod+V hotkey-overlay-title="Clipboard manager" { spawn "dms" "ipc" "call" "clipboard" "toggle"; }
     Mod+M hotkey-overlay-title="Process manager" { spawn "dms" "ipc" "call" "processlist" "focusOrToggle"; }
     Mod+Comma hotkey-overlay-title="DMS settings" { spawn "dms" "ipc" "call" "settings" "focusOrToggle"; }
-    Mod+E hotkey-overlay-title="File browser" { spawn "dms" "ipc" "call" "dmsFiles" "toggle"; }
+    Mod+E hotkey-overlay-title="File browser" { spawn "dfiles" "show"; }
     Mod+N hotkey-overlay-title="Notification center" { spawn "dms" "ipc" "call" "notifications" "toggle"; }
     Mod+P hotkey-overlay-title="Notepad" { spawn "dms" "ipc" "call" "notepad" "toggle"; }
     Mod+X hotkey-overlay-title="Power menu" { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
@@ -177,6 +177,11 @@ include optional=true "dms/windowrules.kdl"
 include optional=true "dms/wpblur.kdl"
 
 window-rule {
-    match app-id="^com.danklinux.dms$" title="^(Settings|DMS Files)$"
+    match app-id=r#"^dev\.duxlabs\.files$"# title=r#"^(Open|Save|Select|Upload|Export|Import)"#
+    open-floating true
+}
+
+window-rule {
+    match app-id=r#"^(com\.danklinux\.dms|dev\.duxlabs\.shell)$"# title="^Settings$"
     open-floating false
 }

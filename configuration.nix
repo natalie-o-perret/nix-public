@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ lib, pkgs, ... }:
 
 let
   grubTheme = pkgs.runCommand "nixos-grub-theme" { nativeBuildInputs = [ pkgs.imagemagick ]; } ''
@@ -70,6 +70,12 @@ in
   services.displayManager.defaultSession = "niri";
 
   programs = {
+    dux-files = {
+      enable = true;
+      package = pkgs.dux-files;
+      portal.enable = true;
+      systemd.enable = true;
+    };
     dms-greeter = {
       enable = true;
       compositor.name = "niri";
@@ -79,8 +85,17 @@ in
       enable = true;
       useNautilus = false;
     };
-    thunar.enable = true;
   };
+
+  systemd.user.services.dfiles.path = [
+    "/etc/profiles/per-user/nperret"
+    "/run/current-system/sw"
+  ];
+
+  xdg.portal.config.niri."org.freedesktop.impl.portal.FileChooser" = lib.mkForce [
+    "dfiles"
+    "gtk"
+  ];
 
   services.gvfs.enable = true;
   services.tumbler.enable = true;
@@ -102,11 +117,23 @@ in
   services.power-profiles-daemon.enable = true;
   services.upower.enable = true;
 
+  systemd.services.accounts-daemon.postStart = ''
+    set -o pipefail
+    user_path="$(${pkgs.systemd}/bin/busctl --system --json=short call \
+      org.freedesktop.Accounts /org/freedesktop/Accounts \
+      org.freedesktop.Accounts FindUserByName s nperret \
+      | ${pkgs.jq}/bin/jq -er '.data[0]')"
+    ${pkgs.systemd}/bin/busctl --system call \
+      org.freedesktop.Accounts "$user_path" \
+      org.freedesktop.Accounts.User SetIconFile s ${./avatars/nperret.png}
+  '';
+
   virtualisation.podman.enable = true;
 
   users.users.nperret = {
     isNormalUser = true;
     description = "Natalie Perret";
+    shell = pkgs.nushell;
     extraGroups = [
       "networkmanager"
       "wheel"

@@ -2,6 +2,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     opencode-nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    signal-nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager";
@@ -54,7 +55,10 @@
       dux-greeter,
       dux-search,
       home-manager,
+      nixpkgs,
       opencode-nixpkgs,
+      self,
+      signal-nixpkgs,
       zen-browser,
       ...
     }:
@@ -101,6 +105,34 @@
         inherit browserPolicies personalBookmarks;
       };
 
+      checks.x86_64-linux.signal-theme =
+        let
+          pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          host = nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
+            modules = [ self.nixosModules.default ];
+          };
+          activation = pkgs.writeShellScript "signal-theme-test" ''
+            ${host.config.home-manager.users.nperret.home.activation.signalSystemTheme.data}
+            touch "$HOME/continued"
+          '';
+        in
+        pkgs.runCommand "signal-theme-test" { nativeBuildInputs = [ pkgs.jq ]; } ''
+          export HOME="$TMPDIR/home"
+          mkdir -p "$HOME"
+          ${activation}
+          test -e "$HOME/continued"
+          test ! -e "$HOME/.config/Signal"
+          rm "$HOME/continued"
+          mkdir -p "$HOME/.config/Signal"
+          echo '{"theme-setting":"dark","keep":true}' > "$HOME/.config/Signal/ephemeral.json"
+          ${activation}
+          test -e "$HOME/continued"
+          jq -e '."theme-setting" == "system" and .keep == true' "$HOME/.config/Signal/ephemeral.json"
+          test "$(stat -c %a "$HOME/.config/Signal/ephemeral.json")" = 600
+          touch "$out"
+        '';
+
       nixosModules.default = {
         imports = [
           ./configuration.nix
@@ -128,6 +160,8 @@
                 dcommon = dux-files.inputs.dank-qml-common;
               };
               opencode = aiPackages.opencode;
+              # Update Signal without moving the desktop package set.
+              signal-desktop = signal-nixpkgs.legacyPackages.${final.stdenv.hostPlatform.system}.signal-desktop;
             }
           )
         ];

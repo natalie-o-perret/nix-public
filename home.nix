@@ -800,11 +800,12 @@ in
 
   home.activation.signalSystemTheme = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings="$HOME/.config/Signal/ephemeral.json"
-    [[ -f "$settings" ]] || exit 0
-    tmp="$(${pkgs.coreutils}/bin/mktemp)"
-    trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
-    ${pkgs.jq}/bin/jq '."theme-setting" = "system"' "$settings" > "$tmp"
-    ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
+    if [[ -f "$settings" ]]; then
+      tmp="$(${pkgs.coreutils}/bin/mktemp)"
+      trap '${pkgs.coreutils}/bin/rm -f "$tmp"' EXIT
+      ${pkgs.jq}/bin/jq '."theme-setting" = "system"' "$settings" > "$tmp"
+      ${pkgs.coreutils}/bin/install -m 600 "$tmp" "$settings"
+    fi
   '';
 
   xdg.dataFile = {
